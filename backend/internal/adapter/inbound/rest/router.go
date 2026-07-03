@@ -1,0 +1,80 @@
+package rest
+
+import (
+	"time"
+
+	"github.com/gin-gonic/gin"
+
+	"github.com/khaopod/backend/internal/adapter/inbound/rest/response"
+	"github.com/khaopod/backend/internal/core/port/output"
+)
+
+// RateLimitConfig = โควตา + หน้าต่างเวลาของ endpoint OTP (มาจาก config/env)
+type RateLimitConfig struct {
+	OTPRequestPerIP          int
+	OTPRequestPerIPWindow    time.Duration
+	OTPRequestPerEmail       int
+	OTPRequestPerEmailWindow time.Duration
+	OTPVerifyPerIP           int
+	OTPVerifyPerIPWindow     time.Duration
+}
+
+// withDefaults เติมค่าปลอดภัยถ้ามีฟิลด์ไหนไม่ถูกตั้ง (กันลืม wire แล้วกลายเป็น 0 = บล็อกทุกครั้ง)
+func (r RateLimitConfig) withDefaults() RateLimitConfig {
+	if r.OTPRequestPerIP <= 0 {
+		r.OTPRequestPerIP = 10
+	}
+	if r.OTPRequestPerIPWindow <= 0 {
+		r.OTPRequestPerIPWindow = 10 * time.Minute
+	}
+	if r.OTPRequestPerEmail <= 0 {
+		r.OTPRequestPerEmail = 1
+	}
+	if r.OTPRequestPerEmailWindow <= 0 {
+		r.OTPRequestPerEmailWindow = time.Minute
+	}
+	if r.OTPVerifyPerIP <= 0 {
+		r.OTPVerifyPerIP = 10
+	}
+	if r.OTPVerifyPerIPWindow <= 0 {
+		r.OTPVerifyPerIPWindow = time.Minute
+	}
+	return r
+}
+
+// Deps = สิ่งที่ router ต้องใช้ (ประกอบมาจาก composition root)
+type Deps struct {
+	Auth      *AuthHandler
+	User      *UserHandler
+	Tokens    output.Tokenizer
+	RateLimit RateLimitConfig
+}
+
+// RegisterRoutes ผูก path ทั้งหมด — path/method ต้องตรงกับ docs/rest_api.md
+func RegisterRoutes(engine *gin.Engine, d Deps) {
+	rl := d.RateLimit.withDefaults()
+
+	// rate limiter สำหรับ endpoint OTP (กัน brute-force / spam)
+	otpPerIP := NewLimiter(rl.OTPRequestPerIP, rl.OTPRequestPerIPWindow)
+	otpPerEmail := NewLimiter(rl.OTPRequestPerEmail, rl.OTPRequestPerEmailWindow)
+	verifyPerIP := NewLimiter(rl.OTPVerifyPerIP, rl.OTPVerifyPerIPWindow)
+
+	engine.GET("/healthz", func(c *gin.Context) {
+		response.OK(c, gin.H{"status": "ok"})
+	})
+
+	v1 := engine.Group("/v1")
+
+	// ---- Auth (🔓) ----
+	v1.POST("/auth/otp/request", OTPRequestRateLimit(otpPerIP, otpPerEmail), d.Auth.RequestOTP)
+	v1.POST("/auth/google", OTPRequestRateLimit(otpPerIP, otpPerEmail), d.Auth.Google)
+	v1.POST("/auth/otp/verify", IPRateLimit(verifyPerIP), d.Auth.VerifyOTP)
+	v1.POST("/auth/refresh", d.Auth.Refresh)
+
+	// ---- ต้องล็อกอิน (🔒) ----
+	secured := v1.Group("", RequireAuth(d.Tokens))
+	secured.POST("/auth/logout", d.Auth.Logout)
+	secured.GET("/auth/me", d.Auth.Me)
+	secured.GET("/me", d.User.GetMe)
+	secured.PATCH("/me", d.User.UpdateMe)
+}
