@@ -4,15 +4,19 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Spinner } from '@/components/ui/spinner'
 import { useProduct } from '@/features/products/hooks'
+import { useLang } from '@/i18n/LanguageContext'
+import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import { formatBaht } from '@/lib/format'
 import { cn } from '@/lib/utils'
 import type { ProductVariant } from '@/types/product'
 
 export function ProductDetailPage() {
+  const { t } = useLang()
   const { slug } = useParams<{ slug: string }>()
   const { data, isLoading, isError } = useProduct(slug ?? '')
   const [variant, setVariant] = useState<ProductVariant | null>(null)
   const [notice, setNotice] = useState('')
+  useDocumentTitle(data?.name)
 
   if (isLoading) {
     return (
@@ -24,9 +28,9 @@ export function ProductDetailPage() {
   if (isError || !data) {
     return (
       <div className="mx-auto max-w-6xl px-4 py-24 text-center">
-        <p className="text-sm text-muted-foreground">ไม่พบสินค้านี้</p>
+        <p className="text-sm text-muted-foreground">{t('product.notFound')}</p>
         <Link to="/shop" className="mt-4 inline-block text-sm font-semibold underline">
-          กลับไปหน้าสินค้า
+          {t('product.backCollection')}
         </Link>
       </div>
     )
@@ -34,13 +38,22 @@ export function ProductDetailPage() {
 
   const addToCart = () => {
     // ระบบตะกร้าจะต่อกับ backend /cart ในเฟสถัดไป
-    setNotice('ระบบตะกร้ากำลังจะมาเร็ว ๆ นี้ — ตอนนี้ยังเป็นเดโมหน้าร้าน')
+    setNotice(t('product.cartComingSoon'))
   }
+
+  const ctaLabel = !data.in_stock
+    ? t('product.outOfStock')
+    : !variant
+      ? t('product.selectOption')
+      : t('product.addToCart')
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-8">
-      <Link to="/shop" className="text-xs font-semibold uppercase tracking-widest text-muted-foreground hover:text-foreground">
-        ← สินค้าทั้งหมด
+      <Link
+        to="/shop"
+        className="text-xs font-semibold uppercase tracking-widest text-muted-foreground hover:text-foreground"
+      >
+        {t('product.backCollectionShort')}
       </Link>
 
       <div className="mt-6 grid gap-8 md:grid-cols-2">
@@ -68,7 +81,7 @@ export function ProductDetailPage() {
 
           {/* เลือกตัวเลือก */}
           <div className="mt-6">
-            <p className="mb-2 text-xs font-bold uppercase tracking-widest">ตัวเลือก</p>
+            <p className="mb-2 text-xs font-bold uppercase tracking-widest">{t('product.options')}</p>
             <div className="flex flex-wrap gap-2">
               {data.variants.map((v) => {
                 const out = v.stock_quantity <= 0
@@ -82,7 +95,9 @@ export function ProductDetailPage() {
                     className={cn(
                       'border px-4 py-2 text-sm font-medium transition-colors',
                       out && 'cursor-not-allowed text-muted-foreground/40 line-through',
-                      selected ? 'border-primary bg-primary text-primary-foreground' : 'border-input hover:border-primary',
+                      selected
+                        ? 'border-primary bg-primary text-primary-foreground'
+                        : 'border-input hover:border-primary',
                     )}
                   >
                     {v.variant_name}
@@ -98,7 +113,7 @@ export function ProductDetailPage() {
             disabled={!data.in_stock || !variant}
             onClick={addToCart}
           >
-            {!data.in_stock ? 'สินค้าหมด' : !variant ? 'เลือกตัวเลือกก่อน' : 'เพิ่มลงตะกร้า'}
+            {ctaLabel}
           </Button>
           {notice && (
             <p className="mt-3 rounded-md bg-accent/10 px-3 py-2 text-sm text-accent">{notice}</p>

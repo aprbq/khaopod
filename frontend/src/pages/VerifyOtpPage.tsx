@@ -11,12 +11,13 @@ import { Label } from '@/components/ui/label'
 import { Spinner } from '@/components/ui/spinner'
 import { useAuth } from '@/features/auth/AuthContext'
 import { useRequestOtp, useVerifyOtp } from '@/features/auth/hooks'
+import { useLang } from '@/i18n/LanguageContext'
+import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import { ApiError } from '@/lib/apiClient'
 
-const schema = z.object({
-  code: z.string().regex(/^\d{6}$/, 'รหัส OTP ต้องเป็นตัวเลข 6 หลัก'),
-})
-type VerifyForm = z.infer<typeof schema>
+interface VerifyForm {
+  code: string
+}
 
 interface LocationState {
   email?: string
@@ -30,6 +31,8 @@ function mmss(total: number): string {
 }
 
 export function VerifyOtpPage() {
+  const { t } = useLang()
+  useDocumentTitle(t('verify.docTitle'))
   const navigate = useNavigate()
   const location = useLocation()
   const { setSession } = useAuth()
@@ -41,6 +44,7 @@ export function VerifyOtpPage() {
   const [expiry, setExpiry] = useState(state.expiresIn ?? 300)
   const [cooldown, setCooldown] = useState(60) // rate limit backend: ขอใหม่ได้ทุก 60 วิ
 
+  const schema = z.object({ code: z.string().regex(/^\d{6}$/, t('verify.otpInvalid')) })
   const {
     register,
     handleSubmit,
@@ -64,7 +68,12 @@ export function VerifyOtpPage() {
   const onSubmit = handleSubmit((values) => {
     verifyOtp.mutate(
       { email, code: values.code },
-      { onSuccess: (res) => { setSession(res); navigate('/account', { replace: true }) } },
+      {
+        onSuccess: (res) => {
+          setSession(res)
+          navigate('/account', { replace: true })
+        },
+      },
     )
   })
 
@@ -84,15 +93,17 @@ export function VerifyOtpPage() {
     <AuthShell>
       <Card>
         <CardHeader>
-          <CardTitle>ยืนยันรหัส OTP</CardTitle>
+          <CardTitle>{t('verify.title')}</CardTitle>
           <CardDescription>
-            ส่งรหัส 6 หลักไปที่ <span className="font-medium text-foreground">{email}</span> แล้ว
+            {t('verify.sentTo').split('{email}')[0]}
+            <span className="font-medium text-foreground">{email}</span>
+            {t('verify.sentTo').split('{email}')[1]}
           </CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={onSubmit} className="flex flex-col gap-4" noValidate>
             <div className="flex flex-col gap-2">
-              <Label htmlFor="code">รหัส OTP</Label>
+              <Label htmlFor="code">{t('verify.otp')}</Label>
               <Input
                 id="code"
                 inputMode="numeric"
@@ -105,7 +116,7 @@ export function VerifyOtpPage() {
               />
               {errors.code && <p className="text-sm text-destructive">{errors.code.message}</p>}
               <p className="text-xs text-muted-foreground">
-                {expiry > 0 ? `รหัสหมดอายุใน ${mmss(expiry)} นาที` : 'รหัสหมดอายุแล้ว กรุณาขอรหัสใหม่'}
+                {expiry > 0 ? t('verify.expiresIn', { time: mmss(expiry) }) : t('verify.expired')}
               </p>
             </div>
 
@@ -117,7 +128,7 @@ export function VerifyOtpPage() {
 
             <Button type="submit" size="lg" disabled={verifyOtp.isPending}>
               {verifyOtp.isPending && <Spinner />}
-              ยืนยันและเข้าสู่ระบบ
+              {t('verify.submit')}
             </Button>
           </form>
 
@@ -130,7 +141,7 @@ export function VerifyOtpPage() {
               disabled={cooldown > 0 || requestOtp.isPending}
             >
               {requestOtp.isPending && <Spinner />}
-              {cooldown > 0 ? `ขอรหัสใหม่ได้ใน ${cooldown} วิ` : 'ขอรหัสใหม่'}
+              {cooldown > 0 ? t('verify.resendIn', { sec: cooldown }) : t('verify.resend')}
             </Button>
             {resendMessage && <p className="text-xs text-destructive">{resendMessage}</p>}
           </div>

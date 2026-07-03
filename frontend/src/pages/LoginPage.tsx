@@ -9,16 +9,21 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Spinner } from '@/components/ui/spinner'
 import { useRequestOtp } from '@/features/auth/hooks'
+import { useLang } from '@/i18n/LanguageContext'
+import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import { ApiError } from '@/lib/apiClient'
 
-const schema = z.object({
-  email: z.email('อีเมลไม่ถูกต้อง'),
-})
-type LoginForm = z.infer<typeof schema>
+interface LoginForm {
+  email: string
+}
 
 export function LoginPage() {
+  const { t } = useLang()
+  useDocumentTitle(t('login.title'))
   const navigate = useNavigate()
   const requestOtp = useRequestOtp()
+
+  const schema = z.object({ email: z.email(t('login.emailInvalid')) })
   const {
     register,
     handleSubmit,
@@ -27,7 +32,8 @@ export function LoginPage() {
 
   const onSubmit = handleSubmit((values) => {
     requestOtp.mutate(values.email, {
-      onSuccess: (res) => navigate('/verify', { state: { email: res.email, expiresIn: res.expires_in } }),
+      onSuccess: (res) =>
+        navigate('/verify', { state: { email: res.email, expiresIn: res.expires_in } }),
     })
   })
 
@@ -37,13 +43,13 @@ export function LoginPage() {
     <AuthShell>
       <Card>
         <CardHeader>
-          <CardTitle>เข้าสู่ระบบ</CardTitle>
-          <CardDescription>กรอกอีเมลเพื่อรับรหัส OTP — ไม่ต้องใช้รหัสผ่าน</CardDescription>
+          <CardTitle>{t('login.title')}</CardTitle>
+          <CardDescription>{t('login.desc')}</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={onSubmit} className="flex flex-col gap-4" noValidate>
             <div className="flex flex-col gap-2">
-              <Label htmlFor="email">อีเมล</Label>
+              <Label htmlFor="email">{t('login.email')}</Label>
               <Input
                 id="email"
                 type="email"
@@ -63,7 +69,7 @@ export function LoginPage() {
 
             <Button type="submit" size="lg" disabled={requestOtp.isPending}>
               {requestOtp.isPending && <Spinner />}
-              ขอรหัส OTP
+              {t('login.requestOtp')}
             </Button>
           </form>
         </CardContent>

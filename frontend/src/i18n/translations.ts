@@ -1,0 +1,187 @@
+// พจนานุกรมข้อความสองภาษา (ไทย/อังกฤษ)
+// เพิ่มข้อความใหม่ที่นี่เสมอ อย่า hardcode ในคอมโพเนนต์ — เรียกผ่าน t('key')
+
+export type Lang = 'th' | 'en'
+
+const th = {
+  // navbar
+  'nav.home': 'หน้าแรก',
+  'nav.collection': 'คอลเลกชั่น',
+  'nav.stickers': 'สติ๊กเกอร์',
+  'nav.brandHome': 'กองบัญชาการข่าวปด หน้าแรก',
+  'nav.openMenu': 'เปิดเมนู',
+  'nav.account': 'บัญชีของฉัน',
+  'nav.cart': 'ตะกร้าสินค้า',
+
+  // common
+  'common.viewAll': 'ดูทั้งหมด',
+  'common.items': '{n} รายการ',
+
+  // footer
+  'footer.tagline': 'ร้านค้าอย่างเป็นทางการของเพจกองบัญชาการข่าวปด',
+  'footer.shop': 'ช้อป',
+  'footer.help': 'ช่วยเหลือ',
+  'footer.follow': 'ติดตาม',
+  'footer.allCollection': 'คอลเลกชั่นทั้งหมด',
+  'footer.new': 'มาใหม่',
+  'footer.bestSeller': 'ขายดี',
+  'footer.myAccount': 'บัญชีของฉัน',
+  'footer.howToOrder': 'วิธีสั่งซื้อ',
+  'footer.shipping': 'การจัดส่ง',
+  'footer.rights': 'สงวนลิขสิทธิ์.',
+
+  // home
+  'home.shopNow': 'ช้อปเลย',
+  'home.new': 'มาใหม่',
+
+  // shop
+  'shop.collection': 'คอลเลกชั่น',
+
+  // product grid
+  'grid.loadError': 'โหลดสินค้าไม่สำเร็จ กรุณาลองใหม่อีกครั้ง',
+  'grid.empty': 'ยังไม่มีสินค้า',
+
+  // product detail
+  'product.notFound': 'ไม่พบสินค้านี้',
+  'product.backCollection': 'กลับไปหน้าคอลเลกชั่น',
+  'product.backCollectionShort': '← คอลเลกชั่นทั้งหมด',
+  'product.options': 'ตัวเลือก',
+  'product.outOfStock': 'สินค้าหมด',
+  'product.selectOption': 'เลือกตัวเลือกก่อน',
+  'product.addToCart': 'เพิ่มลงตะกร้า',
+  'product.cartComingSoon': 'ระบบตะกร้ากำลังจะมาเร็ว ๆ นี้ — ตอนนี้ยังเป็นเดโมหน้าร้าน',
+
+  // cart
+  'cart.emptyTitle': 'ตะกร้าของคุณยังว่าง',
+  'cart.emptyDesc': 'ระบบตะกร้ากำลังจะเปิดใช้งานเร็ว ๆ นี้',
+  'cart.browse': 'เลือกซื้อสินค้า',
+  'cart.docTitle': 'ตะกร้า',
+
+  // login
+  'login.brand': 'กองบัญชาการข่าวปด',
+  'login.title': 'เข้าสู่ระบบ',
+  'login.desc': 'กรอกอีเมลเพื่อรับรหัส OTP — ไม่ต้องใช้รหัสผ่าน',
+  'login.email': 'อีเมล',
+  'login.emailInvalid': 'อีเมลไม่ถูกต้อง',
+  'login.requestOtp': 'ขอรหัส OTP',
+
+  // verify
+  'verify.title': 'ยืนยันรหัส OTP',
+  'verify.docTitle': 'ยืนยัน OTP',
+  'verify.sentTo': 'ส่งรหัส 6 หลักไปที่ {email} แล้ว',
+  'verify.otp': 'รหัส OTP',
+  'verify.otpInvalid': 'รหัส OTP ต้องเป็นตัวเลข 6 หลัก',
+  'verify.expiresIn': 'รหัสหมดอายุใน {time} นาที',
+  'verify.expired': 'รหัสหมดอายุแล้ว กรุณาขอรหัสใหม่',
+  'verify.submit': 'ยืนยันและเข้าสู่ระบบ',
+  'verify.resendIn': 'ขอรหัสใหม่ได้ใน {sec} วิ',
+  'verify.resend': 'ขอรหัสใหม่',
+
+  // profile
+  'profile.title': 'บัญชีของฉัน',
+  'profile.docTitle': 'โปรไฟล์',
+  'profile.logout': 'ออกจากระบบ',
+  'profile.accountInfo': 'ข้อมูลบัญชี',
+  'profile.email': 'อีเมล',
+  'profile.role': 'สิทธิ์',
+  'profile.publicId': 'รหัสผู้ใช้ (public id)',
+  'profile.roleAdmin': 'ผู้ดูแลระบบ',
+  'profile.roleCustomer': 'ลูกค้า',
+  'profile.editProfile': 'แก้ไขโปรไฟล์',
+  'profile.displayName': 'ชื่อที่แสดง',
+  'profile.displayNamePh': 'เช่น สมชาย ใจดี',
+  'profile.nameTooLong': 'ชื่อยาวเกินไป',
+  'profile.phone': 'เบอร์โทร',
+  'profile.phonePh': '0812345678',
+  'profile.phoneInvalid': 'เบอร์โทรต้องขึ้นต้น 0 และมี 10 หลัก',
+  'profile.saved': 'บันทึกโปรไฟล์แล้ว',
+  'profile.save': 'บันทึก',
+}
+
+export type TranslationKey = keyof typeof th
+
+const en: Record<TranslationKey, string> = {
+  'nav.home': 'Home',
+  'nav.collection': 'Collection',
+  'nav.stickers': 'Stickers',
+  'nav.brandHome': 'Khaopod News HQ home',
+  'nav.openMenu': 'Open menu',
+  'nav.account': 'My account',
+  'nav.cart': 'Shopping cart',
+
+  'common.viewAll': 'View all',
+  'common.items': '{n} items',
+
+  'footer.tagline': 'The official store of the Khaopod News page',
+  'footer.shop': 'Shop',
+  'footer.help': 'Help',
+  'footer.follow': 'Follow',
+  'footer.allCollection': 'All collection',
+  'footer.new': 'New arrivals',
+  'footer.bestSeller': 'Best sellers',
+  'footer.myAccount': 'My account',
+  'footer.howToOrder': 'How to order',
+  'footer.shipping': 'Shipping',
+  'footer.rights': 'All rights reserved.',
+
+  'home.shopNow': 'Shop now',
+  'home.new': 'New arrivals',
+
+  'shop.collection': 'Collection',
+
+  'grid.loadError': 'Failed to load products. Please try again.',
+  'grid.empty': 'No products yet',
+
+  'product.notFound': 'Product not found',
+  'product.backCollection': 'Back to collection',
+  'product.backCollectionShort': '← All collection',
+  'product.options': 'Options',
+  'product.outOfStock': 'Out of stock',
+  'product.selectOption': 'Select an option',
+  'product.addToCart': 'Add to cart',
+  'product.cartComingSoon': 'Cart is coming soon — this is a store demo for now',
+
+  'cart.emptyTitle': 'Your cart is empty',
+  'cart.emptyDesc': 'The cart will be available soon',
+  'cart.browse': 'Browse products',
+  'cart.docTitle': 'Cart',
+
+  'login.brand': 'Khaopod News',
+  'login.title': 'Sign in',
+  'login.desc': 'Enter your email to get an OTP — no password needed',
+  'login.email': 'Email',
+  'login.emailInvalid': 'Invalid email',
+  'login.requestOtp': 'Request OTP',
+
+  'verify.title': 'Verify OTP',
+  'verify.docTitle': 'Verify OTP',
+  'verify.sentTo': 'A 6-digit code was sent to {email}',
+  'verify.otp': 'OTP code',
+  'verify.otpInvalid': 'OTP must be 6 digits',
+  'verify.expiresIn': 'Code expires in {time}',
+  'verify.expired': 'Code expired, please request a new one',
+  'verify.submit': 'Verify & sign in',
+  'verify.resendIn': 'Resend in {sec}s',
+  'verify.resend': 'Resend code',
+
+  'profile.title': 'My account',
+  'profile.docTitle': 'Profile',
+  'profile.logout': 'Sign out',
+  'profile.accountInfo': 'Account info',
+  'profile.email': 'Email',
+  'profile.role': 'Role',
+  'profile.publicId': 'User ID (public id)',
+  'profile.roleAdmin': 'Admin',
+  'profile.roleCustomer': 'Customer',
+  'profile.editProfile': 'Edit profile',
+  'profile.displayName': 'Display name',
+  'profile.displayNamePh': 'e.g. John Doe',
+  'profile.nameTooLong': 'Name is too long',
+  'profile.phone': 'Phone',
+  'profile.phonePh': '0812345678',
+  'profile.phoneInvalid': 'Phone must start with 0 and be 10 digits',
+  'profile.saved': 'Profile saved',
+  'profile.save': 'Save',
+}
+
+export const translations: Record<Lang, Record<TranslationKey, string>> = { th, en }

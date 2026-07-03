@@ -1,5 +1,6 @@
 import { ProductCard } from '@/components/ProductCard'
 import { Spinner } from '@/components/ui/spinner'
+import { useLang } from '@/i18n/LanguageContext'
 import type { Product } from '@/types/product'
 
 interface Props {
@@ -9,6 +10,8 @@ interface Props {
 }
 
 export function ProductGrid({ products, isLoading, isError }: Props) {
+  const { t } = useLang()
+
   if (isLoading) {
     return (
       <div className="grid place-items-center py-24">
@@ -17,14 +20,10 @@ export function ProductGrid({ products, isLoading, isError }: Props) {
     )
   }
   if (isError) {
-    return (
-      <p className="py-24 text-center text-sm text-destructive">
-        โหลดสินค้าไม่สำเร็จ กรุณาลองใหม่อีกครั้ง
-      </p>
-    )
+    return <p className="py-24 text-center text-sm text-destructive">{t('grid.loadError')}</p>
   }
   if (!products || products.length === 0) {
-    return <p className="py-24 text-center text-sm text-muted-foreground">ยังไม่มีสินค้า</p>
+    return <p className="py-24 text-center text-sm text-muted-foreground">{t('grid.empty')}</p>
   }
 
   return (
