@@ -6,7 +6,7 @@ export type Lang = 'th' | 'en'
 const th = {
   // navbar
   'nav.home': 'หน้าแรก',
-  'nav.collection': 'คอลเลกชั่น',
+  'nav.collection': 'คอลเลกชัน',
   'nav.stickers': 'สติ๊กเกอร์',
   'nav.brandHome': 'กองบัญชาการข่าวปด หน้าแรก',
   'nav.openMenu': 'เปิดเมนู',
@@ -16,6 +16,7 @@ const th = {
   // common
   'common.viewAll': 'ดูทั้งหมด',
   'common.items': '{n} รายการ',
+  'common.close': 'ปิด',
 
   // footer
   'footer.tagline': 'ร้านค้าอย่างเป็นทางการของเพจกองบัญชาการข่าวปด',
@@ -50,6 +51,8 @@ const th = {
   'product.selectOption': 'เลือกตัวเลือกก่อน',
   'product.addToCart': 'เพิ่มลงตะกร้า',
   'product.cartComingSoon': 'ระบบตะกร้ากำลังจะมาเร็ว ๆ นี้ — ตอนนี้ยังเป็นเดโมหน้าร้าน',
+  'product.viewLarge': 'ดูรูปขนาดใหญ่',
+  'product.viewImageN': 'ดูรูปที่ {n}',
 
   // cart
   'cart.emptyTitle': 'ตะกร้าของคุณยังว่าง',
@@ -111,6 +114,7 @@ const en: Record<TranslationKey, string> = {
 
   'common.viewAll': 'View all',
   'common.items': '{n} items',
+  'common.close': 'Close',
 
   'footer.tagline': 'The official store of the Khaopod News page',
   'footer.shop': 'Shop',
@@ -140,6 +144,8 @@ const en: Record<TranslationKey, string> = {
   'product.selectOption': 'Select an option',
   'product.addToCart': 'Add to cart',
   'product.cartComingSoon': 'Cart is coming soon — this is a store demo for now',
+  'product.viewLarge': 'View larger image',
+  'product.viewImageN': 'View image {n}',
 
   'cart.emptyTitle': 'Your cart is empty',
   'cart.emptyDesc': 'The cart will be available soon',

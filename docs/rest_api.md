@@ -8,8 +8,9 @@
 
 **Base URL**
 ```
-https://api.kbcnews.shop/v1
+https://api.kbcnews.shop/api/v1
 ```
+(dev: `http://localhost:8080/api/v1`)
 
 **Authentication**
 ใช้ JWT ผ่าน header ทุก endpoint ที่ต้องล็อกอิน:
@@ -239,12 +240,18 @@ Response `200`:
       "is_featured": true,
       "primary_image": "https://.../cover.jpg",
       "price_range": { "min": 299.00, "max": 349.00 },
-      "in_stock": true
+      "in_stock": true,
+      "category": { "id": 1, "name": "เสื้อยืด", "slug": "tshirt" }
     }
   ],
   "meta": { "page": 1, "per_page": 20, "total": 42, "total_pages": 3 }
 }
 ```
+หมายเหตุ:
+- ค่าเงินทุกฟิลด์ (`base_price`, `price_range.min/max`, `variants[].price`) เป็น **string** (serialize จาก decimal เพื่อคงความแม่นยำ ไม่ใช้ float) — ฝั่ง client แปลงเป็นตัวเลขเองตอนคำนวณ
+- `category` = filter ด้วย **slug** ของหมวดหมู่ (เช่น `?category=tshirt`); ในผลลัพธ์เป็น object `{id,name,slug}` หรือ `null` ถ้าสินค้าไม่ถูกจัดหมวด
+- `sort` รับเฉพาะ `created_at` / `base_price` / `name` (นำหน้าด้วย `-` = จากมากไปน้อย) ค่าอื่นถูกมองข้ามและใช้ค่าเริ่มต้น `-created_at`
+- `price_range` / `in_stock` คำนวณจาก variant ที่ยัง active; แสดงเฉพาะสินค้าที่ `is_active = true`
 
 ### 5.2 ดูรายละเอียดสินค้า (พร้อม variants + รูปทั้งหมด) 🔓
 ```
@@ -258,8 +265,13 @@ Response `200`:
     "id": 10,
     "name": "เสื้อยืดกองบัญชาการข่าวปด",
     "slug": "kbc-tshirt-01",
-    "description": "เสื้อผ้าฝ้าย 100%...",
+    "base_price": 299.00,
+    "is_featured": true,
+    "primary_image": "https://.../cover.jpg",
+    "price_range": { "min": 299.00, "max": 349.00 },
+    "in_stock": true,
     "category": { "id": 1, "name": "เสื้อยืด", "slug": "tshirt" },
+    "description": "เสื้อผ้าฝ้าย 100%...",
     "images": [
       { "id": 1, "url": "https://.../1.jpg", "is_primary": true, "sort_order": 0 },
       { "id": 2, "url": "https://.../2.jpg", "is_primary": false, "sort_order": 1 }

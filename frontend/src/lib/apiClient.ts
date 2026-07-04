@@ -1,7 +1,9 @@
 // API client ตัวเดียวของทั้งเว็บ — จัดการ envelope + แนบ token + refresh อัตโนมัติ
 // อย่า fetch ดิบ ๆ รายจุด ให้เรียกผ่าน apiFetch เสมอ
 
-const BASE_URL = '/v1' // ผ่าน Vite proxy → backend (same-origin, cookie ทำงาน)
+// ยิงตรงไป backend ตาม VITE_API_BASE_URL ใน .env (เช่น http://localhost:8080/api/v1)
+// ยิงข้าม origin → backend เปิด CORS ให้ origin นี้แล้ว
+const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api/v1'
 
 // access token เก็บใน memory เท่านั้น (ไม่ลง localStorage — ปลอดภัยกว่า)
 let accessToken: string | null = null

@@ -1,9 +1,14 @@
 // สะท้อน response ของ /products ใน docs/rest_api.md (§5)
-// (ตอนนี้ยังใช้ mock — เมื่อ backend มี endpoint สินค้าค่อยสลับมา apiFetch)
 
 export interface PriceRange {
   min: number
   max: number
+}
+
+export interface Category {
+  id: number
+  name: string
+  slug: string
 }
 
 export interface ProductVariant {
@@ -14,6 +19,14 @@ export interface ProductVariant {
   sku?: string
 }
 
+export interface ProductImage {
+  id: number
+  url: string
+  is_primary: boolean
+  sort_order: number
+}
+
+// รายการสินค้า (§5.1) — ฟิลด์ย่อสำหรับการ์ด/กริด
 export interface Product {
   id: number
   name: string
@@ -23,11 +36,21 @@ export interface Product {
   primary_image: string | null
   price_range: PriceRange
   in_stock: boolean
-  category: string // label หมวดหมู่ (ไว้โชว์)
+  category: Category | null // null = สินค้าไม่ถูกจัดหมวด
 }
 
+// รายละเอียดสินค้า (§5.2) — Product + description + รูปทั้งหมด + variants
 export interface ProductDetail extends Product {
   description: string
-  images: string[]
+  images: ProductImage[]
   variants: ProductVariant[]
+}
+
+// พารามิเตอร์ค้นหา/กรองของ GET /products
+export interface ProductQuery {
+  category?: string // slug ของหมวดหมู่
+  search?: string
+  sort?: string
+  page?: number
+  per_page?: number
 }

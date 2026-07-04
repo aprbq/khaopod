@@ -35,7 +35,9 @@ export function ProductCard({ product }: { product: Product }) {
       <div className="flex items-start justify-between gap-2 py-3">
         <div className="min-w-0">
           <p className="truncate text-sm font-semibold group-hover:underline">{name}</p>
-          <p className="text-[11px] uppercase tracking-wider text-muted-foreground">{category}</p>
+          <p className="text-[11px] uppercase tracking-wider text-muted-foreground">
+            {category?.name}
+          </p>
         </div>
         <p
           className={cn(
