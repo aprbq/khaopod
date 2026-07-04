@@ -11,11 +11,25 @@ import { formatBaht } from '@/lib/format'
 import { cn } from '@/lib/utils'
 import type { ProductVariant } from '@/types/product'
 
+// สีของ swatch ตามชื่อสี (ค่าจาก backend ไม่แปล) — ชื่อที่ไม่รู้จักใช้เทากลาง ๆ
+const SWATCH_HEX: Record<string, string> = {
+  ขาว: '#ffffff',
+  ดำ: '#1a1a1a',
+  แดง: '#dc2626',
+  น้ำเงิน: '#1d4ed8',
+  เขียว: '#16a34a',
+  เหลือง: '#eab308',
+  เทา: '#9ca3af',
+  ครีม: '#f5f0e6',
+}
+const swatchColor = (name: string) => SWATCH_HEX[name] ?? '#d4d4d8'
+
 export function ProductDetailPage() {
   const { t } = useLang()
   const { slug } = useParams<{ slug: string }>()
   const { data, isLoading, isError } = useProduct(slug ?? '')
-  const [variant, setVariant] = useState<ProductVariant | null>(null)
+  const [size, setSize] = useState<string | null>(null)
+  const [color, setColor] = useState<string | null>(null)
   const [activeIdx, setActiveIdx] = useState(0)
   const [zoomOpen, setZoomOpen] = useState(false)
   const [notice, setNotice] = useState('')
@@ -46,6 +60,23 @@ export function ProductDetailPage() {
 
   const images = data.images ?? []
   const activeImage = images[activeIdx]
+
+  // แยกไซซ์กับสีออกเป็นคนละมิติจากรายการ variant
+  const variants = data.variants
+  const sizes = [...new Set(variants.map((v) => v.variant_name))]
+  const colors = [...new Set(variants.map((v) => v.color).filter((c): c is string => !!c))]
+  const hasColors = colors.length > 0
+
+  // variant ที่ตรงกับไซซ์+สีที่เลือก (ถ้าสินค้าไม่มีสี ก็แค่ตรงไซซ์)
+  const selected: ProductVariant | null =
+    variants.find((v) => v.variant_name === size && (!hasColors || v.color === color)) ?? null
+
+  // ไซซ์นี้มีของไหม (ถ้าเลือกสีไว้แล้ว ดูเฉพาะสีนั้น)
+  const sizeInStock = (s: string) =>
+    variants.some((v) => v.variant_name === s && v.stock_quantity > 0 && (!hasColors || !color || v.color === color))
+  // สีนี้มีของไหม (ถ้าเลือกไซซ์ไว้แล้ว ดูเฉพาะไซซ์นั้น)
+  const colorInStock = (c: string) =>
+    variants.some((v) => v.color === c && v.stock_quantity > 0 && (!size || v.variant_name === size))
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-8">
@@ -110,29 +141,68 @@ export function ProductDetailPage() {
           <p className="text-xs uppercase tracking-widest text-muted-foreground">{data.category?.name}</p>
           <h1 className="mt-2 font-display text-2xl uppercase md:text-3xl">{data.name}</h1>
           <p className="mt-4 text-xl font-bold">
-            {formatBaht(variant ? variant.price : data.price_range.min)}
+            {formatBaht(selected ? selected.price : data.price_range.min)}
           </p>
 
-          {/* เลือกตัวเลือก */}
+          {/* เลือกสี (เฉพาะสินค้าที่มีตัวเลือกสี) — swatch แยกจากไซซ์ */}
+          {hasColors && (
+            <div className="mt-6">
+              <p className="mb-2 text-xs font-bold uppercase tracking-widest">
+                {t('product.color')}
+                {color && <span className="ml-2 font-normal normal-case text-muted-foreground">{color}</span>}
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {colors.map((c) => {
+                  const out = !colorInStock(c)
+                  const sel = color === c
+                  return (
+                    <button
+                      key={c}
+                      type="button"
+                      disabled={out}
+                      onClick={() => setColor(c)}
+                      aria-label={c}
+                      aria-pressed={sel}
+                      title={c}
+                      className={cn(
+                        'flex items-center gap-2 rounded-full border py-1 pl-1 pr-3 text-sm transition-colors',
+                        out && 'cursor-not-allowed opacity-40',
+                        sel ? 'border-primary' : 'border-input hover:border-primary',
+                      )}
+                    >
+                      <span
+                        className="size-6 rounded-full border border-border"
+                        style={{ backgroundColor: swatchColor(c) }}
+                      />
+                      {c}
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* เลือกไซซ์ */}
           <div className="mt-6">
-            <p className="mb-2 text-xs font-bold uppercase tracking-widest">{t('product.options')}</p>
+            <p className="mb-2 text-xs font-bold uppercase tracking-widest">{t('product.size')}</p>
             <div className="flex flex-wrap gap-2">
-              {data.variants.map((v) => {
-                const out = v.stock_quantity <= 0
-                const selected = variant?.id === v.id
+              {sizes.map((s) => {
+                const out = !sizeInStock(s)
+                const sel = size === s
                 return (
                   <button
-                    key={v.id}
+                    key={s}
                     type="button"
                     disabled={out}
-                    onClick={() => setVariant(v)}
+                    onClick={() => setSize(s)}
+                    aria-pressed={sel}
                     className={cn(
                       'border px-4 py-2 text-sm font-medium transition-colors',
                       out && 'cursor-not-allowed text-muted-foreground/40 line-through',
-                      selected ? 'border-primary bg-primary text-primary-foreground' : 'border-input hover:border-primary',
+                      sel ? 'border-primary bg-primary text-primary-foreground' : 'border-input hover:border-primary',
                     )}
                   >
-                    {v.variant_name}
+                    {s}
                   </button>
                 )
               })}
@@ -142,12 +212,12 @@ export function ProductDetailPage() {
           <Button
             className="mt-8 w-full"
             size="lg"
-            disabled={!data.in_stock || !variant}
+            disabled={!data.in_stock || !selected || selected.stock_quantity <= 0}
             onClick={addToCart}
           >
             {!data.in_stock
               ? t('product.outOfStock')
-              : !variant
+              : !selected
                 ? t('product.selectOption')
                 : t('product.addToCart')}
           </Button>
