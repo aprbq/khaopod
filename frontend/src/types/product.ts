@@ -13,7 +13,8 @@ export interface Category {
 
 export interface ProductVariant {
   id: number
-  variant_name: string
+  variant_name: string // ไซซ์ เช่น "ไซซ์ M"
+  color?: string // สี เช่น "ขาว"/"ดำ"; ไม่มี = สินค้าไม่มีตัวเลือกสี
   price: number
   stock_quantity: number
   sku?: string

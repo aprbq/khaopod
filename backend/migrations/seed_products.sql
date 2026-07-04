@@ -26,16 +26,27 @@ INSERT INTO products (category_id, name, slug, base_price, is_featured, descript
     ((SELECT id FROM categories WHERE slug = 'tshirt'),      'เสื้อยืด LIMITED — ฉบับพิเศษ',       'limited-special-tee',     690, TRUE,  'รุ่นพิเศษจำนวนจำกัด')
 ON CONFLICT (slug) DO NOTHING;
 
--- variants — ไซซ์ M/L/XL ต่อสินค้า (XL หมดสต็อก) เพื่อให้ price_range/in_stock มีความหลากหลาย
-INSERT INTO product_variants (product_id, sku, variant_name, price, stock_quantity)
-SELECT p.id, p.slug || '-M', 'ไซซ์ M', p.base_price,        12 FROM products p
-ON CONFLICT (sku) DO NOTHING;
-INSERT INTO product_variants (product_id, sku, variant_name, price, stock_quantity)
-SELECT p.id, p.slug || '-L', 'ไซซ์ L', p.base_price + 30,    5 FROM products p
-ON CONFLICT (sku) DO NOTHING;
-INSERT INTO product_variants (product_id, sku, variant_name, price, stock_quantity)
-SELECT p.id, p.slug || '-XL', 'ไซซ์ XL', p.base_price + 30,  0 FROM products p
-ON CONFLICT (sku) DO NOTHING;
+-- variants — reseed แบบ deterministic (รันซ้ำได้ผลเหมือนเดิม)
+-- เสื้อผ้า (เสื้อยืด/ฮู้ดดี้): variant = ไซซ์ × สี (ขาว/ดำ) → ทดสอบ swatch เลือกสีแยกจากไซซ์
+-- สินค้าอื่น: ไซซ์อย่างเดียว color = NULL (ไม่มีตัวเลือกสี)
+-- XL ตั้ง stock = 0 เพื่อให้มีเคสหมดสต็อกสำหรับทดสอบการ disable
+DELETE FROM product_variants;
+
+INSERT INTO product_variants (product_id, sku, variant_name, color, price, stock_quantity)
+SELECT p.id,
+       p.slug || '-' || s.code || '-' || c.code,
+       s.name, c.name,
+       p.base_price + s.price_add, s.stock
+FROM products p
+JOIN categories cat ON cat.id = p.category_id AND cat.slug IN ('tshirt', 'hoodie')
+CROSS JOIN (VALUES ('M', 'ไซซ์ M', 0, 12), ('L', 'ไซซ์ L', 30, 5), ('XL', 'ไซซ์ XL', 30, 0)) AS s(code, name, price_add, stock)
+CROSS JOIN (VALUES ('WH', 'ขาว'), ('BK', 'ดำ')) AS c(code, name);
+
+INSERT INTO product_variants (product_id, sku, variant_name, color, price, stock_quantity)
+SELECT p.id, p.slug || '-' || s.code, s.name, NULL, p.base_price + s.price_add, s.stock
+FROM products p
+JOIN categories cat ON cat.id = p.category_id AND cat.slug NOT IN ('tshirt', 'hoodie')
+CROSS JOIN (VALUES ('M', 'ไซซ์ M', 0, 12), ('L', 'ไซซ์ L', 30, 5), ('XL', 'ไซซ์ XL', 30, 0)) AS s(code, name, price_add, stock);
 
 -- product_images — รูปสินค้า (ไฟล์อยู่ใน backend/migrations/image เสิร์ฟผ่าน /images)
 -- รูปทั้ง 12 เป็นเสื้อตัวเดียวกันหลายมุม → ผูกทั้งหมดกับ 'kbc-tee-hq' เป็นแกลเลอรีเดียว

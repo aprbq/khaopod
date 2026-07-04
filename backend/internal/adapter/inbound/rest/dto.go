@@ -137,6 +137,7 @@ type productImageResponse struct {
 type productVariantResponse struct {
 	ID            uint            `json:"id"`
 	VariantName   string          `json:"variant_name"`
+	Color         string          `json:"color,omitempty"`
 	Price         decimal.Decimal `json:"price"`
 	StockQuantity int             `json:"stock_quantity"`
 	SKU           string          `json:"sku,omitempty"`
@@ -170,6 +171,7 @@ func toProductDetailResponse(p *domain.Product) productDetailResponse {
 		resp.Variants = append(resp.Variants, productVariantResponse{
 			ID:            v.ID,
 			VariantName:   v.Name,
+			Color:         v.Color,
 			Price:         v.Price,
 			StockQuantity: v.StockQuantity,
 			SKU:           v.SKU,

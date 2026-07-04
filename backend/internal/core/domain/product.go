@@ -32,7 +32,8 @@ type ProductVariant struct {
 	ID            uint
 	ProductID     uint
 	SKU           string
-	Name          string // variant_name เช่น "ไซซ์ M / สีดำ"
+	Name          string // variant_name = ไซซ์ เช่น "ไซซ์ M"
+	Color         string // สี เช่น "ขาว"/"ดำ"; "" = ไม่มีตัวเลือกสี
 	Price         decimal.Decimal
 	StockQuantity int
 	IsActive      bool

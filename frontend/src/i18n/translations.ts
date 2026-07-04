@@ -36,7 +36,7 @@ const th = {
   'home.new': 'มาใหม่',
 
   // shop
-  'shop.collection': 'คอลเลกชั่น',
+  'shop.collection': 'คอลเลกชัน',
 
   // product grid
   'grid.loadError': 'โหลดสินค้าไม่สำเร็จ กรุณาลองใหม่อีกครั้ง',
@@ -47,6 +47,8 @@ const th = {
   'product.backCollection': 'กลับไปหน้าคอลเลกชั่น',
   'product.backCollectionShort': '← คอลเลกชั่นทั้งหมด',
   'product.options': 'ตัวเลือก',
+  'product.size': 'ไซซ์',
+  'product.color': 'สี',
   'product.outOfStock': 'สินค้าหมด',
   'product.selectOption': 'เลือกตัวเลือกก่อน',
   'product.addToCart': 'เพิ่มลงตะกร้า',
@@ -140,6 +142,8 @@ const en: Record<TranslationKey, string> = {
   'product.backCollection': 'Back to collection',
   'product.backCollectionShort': '← All collection',
   'product.options': 'Options',
+  'product.size': 'Size',
+  'product.color': 'Color',
   'product.outOfStock': 'Out of stock',
   'product.selectOption': 'Select an option',
   'product.addToCart': 'Add to cart',

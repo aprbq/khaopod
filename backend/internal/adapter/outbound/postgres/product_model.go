@@ -45,6 +45,7 @@ type variantRow struct {
 	ProductID     uint            `gorm:"column:product_id"`
 	SKU           *string         `gorm:"column:sku"`
 	VariantName   string          `gorm:"column:variant_name"`
+	Color         *string         `gorm:"column:color"`
 	Price         decimal.Decimal `gorm:"column:price"`
 	StockQuantity int             `gorm:"column:stock_quantity"`
 	IsActive      bool            `gorm:"column:is_active"`
@@ -90,6 +91,7 @@ func toProductDomain(r productRow) domain.Product {
 			ProductID:     v.ProductID,
 			SKU:           deref(v.SKU),
 			Name:          v.VariantName,
+			Color:         deref(v.Color),
 			Price:         v.Price,
 			StockQuantity: v.StockQuantity,
 			IsActive:      v.IsActive,

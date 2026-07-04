@@ -216,7 +216,8 @@ CREATE TABLE product_variants (
     id             BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     product_id     BIGINT        NOT NULL REFERENCES products(id) ON DELETE CASCADE,
     sku            TEXT,                              -- รหัสสินค้า (optional)
-    variant_name   TEXT          NOT NULL DEFAULT 'ค่าเริ่มต้น',  -- เช่น "ไซซ์ M / สีดำ"
+    variant_name   TEXT          NOT NULL DEFAULT 'ค่าเริ่มต้น',  -- ไซซ์ เช่น "ไซซ์ M"
+    color          TEXT,                              -- สี เช่น "ขาว"/"ดำ"; NULL = ไม่มีตัวเลือกสี
     price          NUMERIC(12,2) NOT NULL CHECK (price >= 0),
     stock_quantity INT           NOT NULL DEFAULT 0 CHECK (stock_quantity >= 0),
     weight_grams   INT           CHECK (weight_grams >= 0),  -- ไว้คำนวณค่าส่ง
