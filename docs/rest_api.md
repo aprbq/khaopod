@@ -257,6 +257,8 @@ Response `200`:
 ```
 GET /products/{slug}
 ```
+> `variant_name` = ไซซ์ (เช่น "ไซซ์ M"), `color` = สี (เช่น "ขาว"/"ดำ") แยกฟิลด์กัน — `color` เป็น optional (ไม่ส่งมาถ้าสินค้าไม่มีตัวเลือกสี) ฝั่ง UI ใช้เลือกไซซ์กับสีเป็นคนละ selector
+
 Response `200`:
 ```json
 {
@@ -277,8 +279,8 @@ Response `200`:
       { "id": 2, "url": "https://.../2.jpg", "is_primary": false, "sort_order": 1 }
     ],
     "variants": [
-      { "id": 100, "variant_name": "ไซซ์ M / สีดำ", "price": 299.00, "stock_quantity": 12, "sku": "TS01-M-BK" },
-      { "id": 101, "variant_name": "ไซซ์ L / สีดำ", "price": 349.00, "stock_quantity": 0,  "sku": "TS01-L-BK" }
+      { "id": 100, "variant_name": "ไซซ์ M", "color": "ดำ", "price": 299.00, "stock_quantity": 12, "sku": "TS01-M-BK" },
+      { "id": 101, "variant_name": "ไซซ์ L", "color": "ดำ", "price": 349.00, "stock_quantity": 0,  "sku": "TS01-L-BK" }
     ]
   }
 }
