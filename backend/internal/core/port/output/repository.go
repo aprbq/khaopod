@@ -41,3 +41,21 @@ type OAuthRepository interface {
 	// Upsert สร้างหรืออัปเดต link ตาม (provider, provider_user_id)
 	Upsert(ctx context.Context, a *domain.OAuthAccount) error
 }
+
+// ProductFilter — เงื่อนไข query ที่ service normalize แล้ว (SortColumn คัดจาก whitelist กัน SQL injection)
+type ProductFilter struct {
+	CategorySlug string
+	Search       string
+	SortColumn   string // ชื่อคอลัมน์ที่ผ่านการ whitelist แล้วเท่านั้น
+	SortDesc     bool
+	Limit        int
+	Offset       int
+}
+
+// ProductRepository — data access ของแคตตาล็อกสินค้า (อ่านเฉพาะสินค้าที่ active)
+type ProductRepository interface {
+	// List คืนสินค้า (พร้อม variants/รูป/หมวดหมู่) ตาม filter + จำนวนทั้งหมดก่อน limit/offset
+	List(ctx context.Context, f ProductFilter) ([]domain.Product, int, error)
+	// FindBySlug คืน domain.ErrNotFound ถ้าไม่พบหรือสินค้าไม่ active
+	FindBySlug(ctx context.Context, slug string) (*domain.Product, error)
+}

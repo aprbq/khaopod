@@ -35,8 +35,9 @@ func main() {
 	otpRepo := postgres.NewOTPRepo(db)
 	sessionRepo := postgres.NewSessionRepo(db)
 	oauthRepo := postgres.NewOAuthRepo(db)
+	productRepo := postgres.NewProductRepo(db)
 	txMgr := postgres.NewTxManager(db)
-	mail := mailer.NewSMTPMailer(cfg.SMTPHost, cfg.SMTPPort, cfg.SMTPUser, cfg.SMTPPass, cfg.MailFrom)
+	mail := mailer.NewSMTPMailer(cfg.SMTPHost, cfg.SMTPPort, cfg.SMTPUser, cfg.SMTPPass, cfg.MailFrom, cfg.SMTPTimeout)
 	tokenizer := auth.NewJWTTokenizer(cfg.JWTSecret, cfg.AccessTTL)
 	googleVerifier := google.NewVerifier(cfg.GoogleClientID)
 
@@ -52,6 +53,7 @@ func main() {
 		},
 	)
 	userSvc := service.NewUserService(userRepo)
+	productSvc := service.NewProductService(productRepo)
 
 	// inbound adapter (driving side)
 	if cfg.IsProduction() {
@@ -59,9 +61,12 @@ func main() {
 	}
 	engine := gin.Default()
 	rest.RegisterRoutes(engine, rest.Deps{
-		Auth:   rest.NewAuthHandler(authSvc, userSvc, int(cfg.RefreshTTL.Seconds()), cfg.IsProduction()),
-		User:   rest.NewUserHandler(userSvc),
-		Tokens: tokenizer,
+		Auth:        rest.NewAuthHandler(authSvc, userSvc, int(cfg.RefreshTTL.Seconds()), cfg.IsProduction()),
+		User:        rest.NewUserHandler(userSvc),
+		Product:     rest.NewProductHandler(productSvc),
+		Tokens:      tokenizer,
+		ImageDir:    cfg.ImageDir,
+		CORSOrigins: cfg.CORSAllowedOrigins,
 		RateLimit: rest.RateLimitConfig{
 			OTPRequestPerIP:          cfg.OTPReqPerIP,
 			OTPRequestPerIPWindow:    cfg.OTPReqPerIPWindow,

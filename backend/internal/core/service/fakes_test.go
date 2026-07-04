@@ -183,6 +183,34 @@ func (g *fakeGoogle) Verify(context.Context, string) (*output.GoogleIdentity, er
 	return g.identity, nil
 }
 
+// fakeProductRepo — เก็บสินค้าใน memory + บันทึก filter ที่ service ส่งมา (ไว้ตรวจ normalize)
+type fakeProductRepo struct {
+	items   []domain.Product
+	lastF   output.ProductFilter
+	findErr error
+	listErr error
+}
+
+func (r *fakeProductRepo) List(_ context.Context, f output.ProductFilter) ([]domain.Product, int, error) {
+	r.lastF = f
+	if r.listErr != nil {
+		return nil, 0, r.listErr
+	}
+	return r.items, len(r.items), nil
+}
+
+func (r *fakeProductRepo) FindBySlug(_ context.Context, slug string) (*domain.Product, error) {
+	if r.findErr != nil {
+		return nil, r.findErr
+	}
+	for i := range r.items {
+		if r.items[i].Slug == slug {
+			return &r.items[i], nil
+		}
+	}
+	return nil, domain.ErrNotFound
+}
+
 // fakeTx เรียก fn ตรง ๆ ไม่มี transaction จริง
 type fakeTx struct{}
 

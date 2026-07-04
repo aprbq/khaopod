@@ -16,7 +16,7 @@ interface NavItem {
 const NAV: NavItem[] = [
   { to: '/', labelKey: 'nav.home' },
   { to: '/shop', labelKey: 'nav.collection' },
-  { to: '/shop?category=สติกเกอร์', labelKey: 'nav.stickers', category: 'สติกเกอร์' },
+  { to: '/shop?category=sticker', labelKey: 'nav.stickers', category: 'sticker' },
 ]
 
 function Brand({ className }: { className?: string }) {

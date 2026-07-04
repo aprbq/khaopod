@@ -1,6 +1,8 @@
 package rest
 
 import (
+	"github.com/shopspring/decimal"
+
 	"github.com/khaopod/backend/internal/core/domain"
 	"github.com/khaopod/backend/internal/core/port/input"
 )
@@ -75,4 +77,110 @@ func toAuthResponse(r *input.AuthResult) authResponse {
 		ExpiresIn:    r.ExpiresIn,
 		User:         toUserResponse(r.User),
 	}
+}
+
+// ---- Product response DTO (ตรงกับ docs/rest_api.md §5) ----
+
+type priceRange struct {
+	Min decimal.Decimal `json:"min"`
+	Max decimal.Decimal `json:"max"`
+}
+
+type categoryResponse struct {
+	ID   uint   `json:"id"`
+	Name string `json:"name"`
+	Slug string `json:"slug"`
+}
+
+func toCategoryResponse(c *domain.Category) *categoryResponse {
+	if c == nil {
+		return nil
+	}
+	return &categoryResponse{ID: c.ID, Name: c.Name, Slug: c.Slug}
+}
+
+// รายการสินค้า (§5.1) — สรุปข้อมูลย่อ + ช่วงราคา/สถานะสต็อกที่คำนวณจาก variants
+type productListItem struct {
+	ID           uint              `json:"id"`
+	Name         string            `json:"name"`
+	Slug         string            `json:"slug"`
+	BasePrice    decimal.Decimal   `json:"base_price"`
+	IsFeatured   bool              `json:"is_featured"`
+	PrimaryImage *string           `json:"primary_image"`
+	PriceRange   priceRange        `json:"price_range"`
+	InStock      bool              `json:"in_stock"`
+	Category     *categoryResponse `json:"category"`
+}
+
+func toProductListItem(p domain.Product) productListItem {
+	min, max := p.PriceRange()
+	return productListItem{
+		ID:           p.ID,
+		Name:         p.Name,
+		Slug:         p.Slug,
+		BasePrice:    p.BasePrice,
+		IsFeatured:   p.IsFeatured,
+		PrimaryImage: nilIfEmptyStr(p.PrimaryImage()),
+		PriceRange:   priceRange{Min: min, Max: max},
+		InStock:      p.InStock(),
+		Category:     toCategoryResponse(p.Category),
+	}
+}
+
+type productImageResponse struct {
+	ID        uint   `json:"id"`
+	URL       string `json:"url"`
+	IsPrimary bool   `json:"is_primary"`
+	SortOrder int    `json:"sort_order"`
+}
+
+type productVariantResponse struct {
+	ID            uint            `json:"id"`
+	VariantName   string          `json:"variant_name"`
+	Price         decimal.Decimal `json:"price"`
+	StockQuantity int             `json:"stock_quantity"`
+	SKU           string          `json:"sku,omitempty"`
+}
+
+// รายละเอียดสินค้า (§5.2) = ข้อมูลย่อชุดเดียวกับ list + description + variants + รูปทั้งหมด
+// embed productListItem เพื่อให้ฟิลด์สรุป (price_range, in_stock, category ฯลฯ) ตรงกันทั้งสอง endpoint
+type productDetailResponse struct {
+	productListItem
+	Description string                   `json:"description"`
+	Images      []productImageResponse   `json:"images"`
+	Variants    []productVariantResponse `json:"variants"`
+}
+
+func toProductDetailResponse(p *domain.Product) productDetailResponse {
+	resp := productDetailResponse{
+		productListItem: toProductListItem(*p),
+		Description:     p.Description,
+		Images:          make([]productImageResponse, 0, len(p.Images)),
+		Variants:        make([]productVariantResponse, 0, len(p.Variants)),
+	}
+	for _, img := range p.Images {
+		resp.Images = append(resp.Images, productImageResponse{
+			ID:        img.ID,
+			URL:       img.URL,
+			IsPrimary: img.IsPrimary,
+			SortOrder: img.SortOrder,
+		})
+	}
+	for _, v := range p.Variants {
+		resp.Variants = append(resp.Variants, productVariantResponse{
+			ID:            v.ID,
+			VariantName:   v.Name,
+			Price:         v.Price,
+			StockQuantity: v.StockQuantity,
+			SKU:           v.SKU,
+		})
+	}
+	return resp
+}
+
+func nilIfEmptyStr(s string) *string {
+	if s == "" {
+		return nil
+	}
+	return &s
 }

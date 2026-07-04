@@ -14,8 +14,11 @@ export default defineConfig({
   server: {
     port: 5173,
     // proxy ให้ browser คุยกับ backend แบบ same-origin — เลี่ยง CORS และให้ httpOnly cookie ทำงาน
+    // ใช้ 127.0.0.1 (ไม่ใช่ localhost) เพราะ Node จะรีโซลฟ์ localhost เป็น ::1 (IPv6) ก่อน
+    // แต่ Go server bind แค่ IPv4 → ECONNREFUSED; ล็อกเป็น IPv4 ตรง ๆ กันปัญหานี้
     proxy: {
-      '/v1': 'http://localhost:8080',
+      '/v1': 'http://127.0.0.1:8080',
+      '/images': 'http://127.0.0.1:8080', // รูปสินค้า static จาก backend
     },
   },
 })

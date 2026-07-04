@@ -44,15 +44,21 @@ func (r RateLimitConfig) withDefaults() RateLimitConfig {
 
 // Deps = สิ่งที่ router ต้องใช้ (ประกอบมาจาก composition root)
 type Deps struct {
-	Auth      *AuthHandler
-	User      *UserHandler
-	Tokens    output.Tokenizer
-	RateLimit RateLimitConfig
+	Auth        *AuthHandler
+	User        *UserHandler
+	Product     *ProductHandler
+	Tokens      output.Tokenizer
+	RateLimit   RateLimitConfig
+	ImageDir    string   // โฟลเดอร์รูปสินค้าที่เสิร์ฟผ่าน /images
+	CORSOrigins []string // origin ของ frontend ที่อนุญาตให้ยิงข้าม origin ได้
 }
 
 // RegisterRoutes ผูก path ทั้งหมด — path/method ต้องตรงกับ docs/rest_api.md
 func RegisterRoutes(engine *gin.Engine, d Deps) {
 	rl := d.RateLimit.withDefaults()
+
+	// CORS ต้องมาก่อนทุก route (รวม /images, /healthz) เพื่อจับ preflight ให้ครบ
+	engine.Use(CORS(d.CORSOrigins))
 
 	// rate limiter สำหรับ endpoint OTP (กัน brute-force / spam)
 	otpPerIP := NewLimiter(rl.OTPRequestPerIP, rl.OTPRequestPerIPWindow)
@@ -63,13 +69,22 @@ func RegisterRoutes(engine *gin.Engine, d Deps) {
 		response.OK(c, gin.H{"status": "ok"})
 	})
 
-	v1 := engine.Group("/v1")
+	// เสิร์ฟรูปสินค้าแบบ static (🔓) — product_images.url ชี้มาที่ /images/<ไฟล์>
+	if d.ImageDir != "" {
+		engine.Static("/images", d.ImageDir)
+	}
+
+	v1 := engine.Group("/api/v1")
 
 	// ---- Auth (🔓) ----
 	v1.POST("/auth/otp/request", OTPRequestRateLimit(otpPerIP, otpPerEmail), d.Auth.RequestOTP)
 	v1.POST("/auth/google", OTPRequestRateLimit(otpPerIP, otpPerEmail), d.Auth.Google)
 	v1.POST("/auth/otp/verify", IPRateLimit(verifyPerIP), d.Auth.VerifyOTP)
 	v1.POST("/auth/refresh", d.Auth.Refresh)
+
+	// ---- Products (🔓 สาธารณะ) ----
+	v1.GET("/products", d.Product.List)
+	v1.GET("/products/:slug", d.Product.GetBySlug)
 
 	// ---- ต้องล็อกอิน (🔒) ----
 	secured := v1.Group("", RequireAuth(d.Tokens))
