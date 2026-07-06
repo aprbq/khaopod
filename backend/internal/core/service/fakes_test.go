@@ -185,10 +185,12 @@ func (g *fakeGoogle) Verify(context.Context, string) (*output.GoogleIdentity, er
 
 // fakeProductRepo — เก็บสินค้าใน memory + บันทึก filter ที่ service ส่งมา (ไว้ตรวจ normalize)
 type fakeProductRepo struct {
-	items   []domain.Product
-	lastF   output.ProductFilter
-	findErr error
-	listErr error
+	items      []domain.Product
+	variants   map[uint]domain.ProductVariant // สำหรับ FindVariantByID
+	lastF      output.ProductFilter
+	findErr    error
+	listErr    error
+	variantErr error
 }
 
 func (r *fakeProductRepo) List(_ context.Context, f output.ProductFilter) ([]domain.Product, int, error) {
@@ -207,6 +209,16 @@ func (r *fakeProductRepo) FindBySlug(_ context.Context, slug string) (*domain.Pr
 		if r.items[i].Slug == slug {
 			return &r.items[i], nil
 		}
+	}
+	return nil, domain.ErrNotFound
+}
+
+func (r *fakeProductRepo) FindVariantByID(_ context.Context, id uint) (*domain.ProductVariant, error) {
+	if r.variantErr != nil {
+		return nil, r.variantErr
+	}
+	if v, ok := r.variants[id]; ok {
+		return &v, nil
 	}
 	return nil, domain.ErrNotFound
 }

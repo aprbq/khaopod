@@ -23,6 +23,10 @@ func mapError(c *gin.Context, err error) {
 		response.Error(c, 403, response.CodeAccountInactive, "บัญชีถูกระงับการใช้งาน")
 	case errors.Is(err, domain.ErrInvalidInput):
 		response.Error(c, 422, response.CodeValidation, "ข้อมูลไม่ถูกต้อง")
+	case errors.Is(err, domain.ErrOutOfStock):
+		response.Error(c, 409, response.CodeOutOfStock, "สินค้าในสต็อกไม่พอ")
+	case errors.Is(err, domain.ErrInvalidQuantity):
+		response.Error(c, 422, response.CodeValidation, "จำนวนสินค้าไม่ถูกต้อง")
 	case errors.Is(err, domain.ErrInvalidOTP):
 		response.Error(c, 400, response.CodeInvalidOTP, "รหัส OTP ไม่ถูกต้องหรือหมดอายุแล้ว")
 	case errors.Is(err, domain.ErrOTPExpired):

@@ -47,6 +47,7 @@ type Deps struct {
 	Auth        *AuthHandler
 	User        *UserHandler
 	Product     *ProductHandler
+	Cart        *CartHandler
 	Tokens      output.Tokenizer
 	RateLimit   RateLimitConfig
 	ImageDir    string   // โฟลเดอร์รูปสินค้าที่เสิร์ฟผ่าน /images
@@ -92,4 +93,11 @@ func RegisterRoutes(engine *gin.Engine, d Deps) {
 	secured.GET("/auth/me", d.Auth.Me)
 	secured.GET("/me", d.User.GetMe)
 	secured.PATCH("/me", d.User.UpdateMe)
+
+	// ---- Cart (🔒) — ดู docs/rest_api.md §6 ----
+	secured.GET("/cart", d.Cart.Get)
+	secured.POST("/cart/items", d.Cart.AddItem)
+	secured.PATCH("/cart/items/:itemId", d.Cart.UpdateItem)
+	secured.DELETE("/cart/items/:itemId", d.Cart.RemoveItem)
+	secured.DELETE("/cart", d.Cart.Clear)
 }

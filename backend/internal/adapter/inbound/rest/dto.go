@@ -186,3 +186,57 @@ func nilIfEmptyStr(s string) *string {
 	}
 	return &s
 }
+
+// ---- Cart (§6) ----
+
+type addCartItemRequest struct {
+	VariantID uint `json:"variant_id" valid:"required"`
+	Quantity  int  `json:"quantity" valid:"required"`
+}
+
+func (r addCartItemRequest) toCommand() input.AddItemCommand {
+	return input.AddItemCommand{VariantID: r.VariantID, Quantity: r.Quantity}
+}
+
+type updateCartItemRequest struct {
+	Quantity int `json:"quantity" valid:"required"`
+}
+
+type cartItemResponse struct {
+	ID          uint            `json:"id"`
+	VariantID   uint            `json:"variant_id"`
+	ProductName string          `json:"product_name"`
+	VariantName string          `json:"variant_name"`
+	Color       string          `json:"color,omitempty"`
+	UnitPrice   decimal.Decimal `json:"unit_price"`
+	Quantity    int             `json:"quantity"`
+	LineTotal   decimal.Decimal `json:"line_total"`
+	Image       string          `json:"image,omitempty"`
+	InStock     bool            `json:"in_stock"`
+}
+
+type cartResponse struct {
+	ID        uint               `json:"id"`
+	Items     []cartItemResponse `json:"items"`
+	Subtotal  decimal.Decimal    `json:"subtotal"`
+	ItemCount int                `json:"item_count"`
+}
+
+func toCartResponse(c *domain.Cart) cartResponse {
+	items := make([]cartItemResponse, 0, len(c.Items))
+	for _, it := range c.Items {
+		items = append(items, cartItemResponse{
+			ID:          it.ID,
+			VariantID:   it.VariantID,
+			ProductName: it.ProductName,
+			VariantName: it.VariantName,
+			Color:       it.Color,
+			UnitPrice:   it.UnitPrice,
+			Quantity:    it.Quantity,
+			LineTotal:   it.LineTotal(),
+			Image:       it.Image,
+			InStock:     it.InStock(),
+		})
+	}
+	return cartResponse{ID: c.ID, Items: items, Subtotal: c.Subtotal(), ItemCount: c.ItemCount()}
+}

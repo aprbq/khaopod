@@ -36,6 +36,7 @@ func main() {
 	sessionRepo := postgres.NewSessionRepo(db)
 	oauthRepo := postgres.NewOAuthRepo(db)
 	productRepo := postgres.NewProductRepo(db)
+	cartRepo := postgres.NewCartRepo(db)
 	txMgr := postgres.NewTxManager(db)
 	mail := mailer.NewSMTPMailer(cfg.SMTPHost, cfg.SMTPPort, cfg.SMTPUser, cfg.SMTPPass, cfg.MailFrom, cfg.SMTPTimeout)
 	tokenizer := auth.NewJWTTokenizer(cfg.JWTSecret, cfg.AccessTTL)
@@ -54,6 +55,7 @@ func main() {
 	)
 	userSvc := service.NewUserService(userRepo)
 	productSvc := service.NewProductService(productRepo)
+	cartSvc := service.NewCartService(cartRepo, productRepo)
 
 	// inbound adapter (driving side)
 	if cfg.IsProduction() {
@@ -64,6 +66,7 @@ func main() {
 		Auth:        rest.NewAuthHandler(authSvc, userSvc, int(cfg.RefreshTTL.Seconds()), cfg.IsProduction()),
 		User:        rest.NewUserHandler(userSvc),
 		Product:     rest.NewProductHandler(productSvc),
+		Cart:        rest.NewCartHandler(cartSvc),
 		Tokens:      tokenizer,
 		ImageDir:    cfg.ImageDir,
 		CORSOrigins: cfg.CORSAllowedOrigins,
