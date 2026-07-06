@@ -1,13 +1,9 @@
-import { zodResolver } from '@hookform/resolvers/zod'
 import { useEffect, useState } from 'react'
-import { useForm } from 'react-hook-form'
 import { Navigate, useLocation, useNavigate } from 'react-router-dom'
-import { z } from 'zod'
 import { AuthShell } from '@/components/AuthShell'
+import { OtpInput } from '@/components/OtpInput'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
 import { Spinner } from '@/components/ui/spinner'
 import { useAuth } from '@/features/auth/AuthContext'
 import { useRequestOtp, useVerifyOtp } from '@/features/auth/hooks'
@@ -15,9 +11,7 @@ import { useLang } from '@/i18n/LanguageContext'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import { ApiError } from '@/lib/apiClient'
 
-interface VerifyForm {
-  code: string
-}
+const OTP_LENGTH = 6
 
 interface LocationState {
   email?: string
@@ -41,15 +35,9 @@ export function VerifyOtpPage() {
   const verifyOtp = useVerifyOtp()
   const requestOtp = useRequestOtp()
 
+  const [code, setCode] = useState('')
   const [expiry, setExpiry] = useState(state.expiresIn ?? 300)
   const [cooldown, setCooldown] = useState(60) // rate limit backend: ขอใหม่ได้ทุก 60 วิ
-
-  const schema = z.object({ code: z.string().regex(/^\d{6}$/, t('verify.otpInvalid')) })
-  const {
-    register,
-    handleSubmit,
-    formState: { errors },
-  } = useForm<VerifyForm>({ resolver: zodResolver(schema), defaultValues: { code: '' } })
 
   useEffect(() => {
     const id = setInterval(() => {
@@ -65,9 +53,10 @@ export function VerifyOtpPage() {
   }
   const email = state.email
 
-  const onSubmit = handleSubmit((values) => {
+  const submit = (value = code) => {
+    if (value.length !== OTP_LENGTH || verifyOtp.isPending) return
     verifyOtp.mutate(
-      { email, code: values.code },
+      { email, code: value },
       {
         onSuccess: (res) => {
           setSession(res)
@@ -75,9 +64,17 @@ export function VerifyOtpPage() {
         },
       },
     )
-  })
+  }
+
+  // แก้เลขเมื่อไหร่ ล้าง error เก่าทิ้ง (ให้ช่องหายแดง) แล้ว auto-submit เมื่อครบ
+  const onCodeChange = (next: string) => {
+    if (verifyOtp.error) verifyOtp.reset()
+    setCode(next)
+  }
 
   const resend = () => {
+    setCode('')
+    verifyOtp.reset()
     requestOtp.mutate(email, {
       onSuccess: (res) => {
         setExpiry(res.expires_in)
@@ -101,32 +98,39 @@ export function VerifyOtpPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={onSubmit} className="flex flex-col gap-4" noValidate>
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="code">{t('verify.otp')}</Label>
-              <Input
-                id="code"
-                inputMode="numeric"
-                autoComplete="one-time-code"
-                maxLength={6}
-                placeholder="000000"
-                className="text-center text-lg tracking-[0.5em]"
-                aria-invalid={!!errors.code}
-                {...register('code')}
-              />
-              {errors.code && <p className="text-sm text-destructive">{errors.code.message}</p>}
-              <p className="text-xs text-muted-foreground">
-                {expiry > 0 ? t('verify.expiresIn', { time: mmss(expiry) }) : t('verify.expired')}
-              </p>
-            </div>
+          <form
+            onSubmit={(e) => {
+              e.preventDefault()
+              submit()
+            }}
+            className="flex flex-col gap-4"
+            noValidate
+          >
+            <OtpInput
+              value={code}
+              onChange={onCodeChange}
+              onComplete={(c) => submit(c)}
+              length={OTP_LENGTH}
+              disabled={verifyOtp.isPending}
+              invalid={!!verifyMessage}
+              ariaLabel={t('verify.otp')}
+            />
+
+            <p className="text-center text-xs text-muted-foreground">
+              {expiry > 0 ? t('verify.expiresIn', { time: mmss(expiry) }) : t('verify.expired')}
+            </p>
 
             {verifyMessage && (
-              <p className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
+              <p className="rounded-md bg-destructive/10 px-3 py-2 text-center text-sm text-destructive">
                 {verifyMessage}
               </p>
             )}
 
-            <Button type="submit" size="lg" disabled={verifyOtp.isPending}>
+            <Button
+              type="submit"
+              size="lg"
+              disabled={code.length !== OTP_LENGTH || verifyOtp.isPending}
+            >
               {verifyOtp.isPending && <Spinner />}
               {t('verify.submit')}
             </Button>
