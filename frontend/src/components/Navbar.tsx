@@ -3,6 +3,7 @@ import { Link, useLocation } from 'react-router-dom'
 import { IconBag, IconClose, IconMenu, IconUser } from '@/components/icons'
 import { Logo } from '@/components/Logo'
 import { useAuth } from '@/features/auth/AuthContext'
+import { useCart } from '@/features/cart/hooks'
 import { useLang } from '@/i18n/LanguageContext'
 import type { TranslationKey } from '@/i18n/translations'
 import { cn } from '@/lib/utils'
@@ -68,6 +69,8 @@ export function Navbar() {
   const [open, setOpen] = useState(false)
   const isActive = useIsActive()
   const accountTo = status === 'authenticated' ? '/account' : '/login'
+  const { data: cart } = useCart()
+  const cartCount = cart?.item_count ?? 0
 
   return (
     <header className="sticky top-0 z-40 border-b border-border bg-background/90 backdrop-blur">
@@ -114,6 +117,11 @@ export function Navbar() {
           </Link>
           <Link to="/cart" aria-label={t('nav.cart')} className="relative hover:text-accent">
             <IconBag className="size-5" />
+            {cartCount > 0 && (
+              <span className="absolute -right-2 -top-2 flex min-w-4 items-center justify-center rounded-full bg-accent px-1 text-[10px] font-bold leading-4 text-accent-foreground">
+                {cartCount}
+              </span>
+            )}
           </Link>
         </div>
       </div>

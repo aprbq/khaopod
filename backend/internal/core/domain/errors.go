@@ -11,6 +11,10 @@ var (
 	ErrInactiveUser = errors.New("user is inactive")
 	ErrInvalidInput = errors.New("invalid input")
 
+	// Cart / stock
+	ErrOutOfStock      = errors.New("out of stock")
+	ErrInvalidQuantity = errors.New("invalid quantity")
+
 	// Auth / OTP
 	ErrInvalidOTP      = errors.New("invalid otp")
 	ErrOTPExpired      = errors.New("otp expired")

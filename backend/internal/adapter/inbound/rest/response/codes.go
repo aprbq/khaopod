@@ -7,6 +7,7 @@ const (
 	CodeUnauthorized    = "UNAUTHORIZED"
 	CodeForbidden       = "FORBIDDEN"
 	CodeNotFound        = "NOT_FOUND"
+	CodeOutOfStock      = "OUT_OF_STOCK"
 	CodeInvalidOTP      = "INVALID_OTP"
 	CodeOTPExpired      = "OTP_EXPIRED"
 	CodeTooManyAttempts = "TOO_MANY_ATTEMPTS"

@@ -58,4 +58,22 @@ type ProductRepository interface {
 	List(ctx context.Context, f ProductFilter) ([]domain.Product, int, error)
 	// FindBySlug คืน domain.ErrNotFound ถ้าไม่พบหรือสินค้าไม่ active
 	FindBySlug(ctx context.Context, slug string) (*domain.Product, error)
+	// FindVariantByID คืน variant ตัวเดียว (ไว้เช็คราคา/สต็อกตอนเพิ่มลงตะกร้า)
+	// คืน domain.ErrNotFound ถ้าไม่พบหรือ variant ไม่ active
+	FindVariantByID(ctx context.Context, id uint) (*domain.ProductVariant, error)
+}
+
+// CartRepository — data access ของตะกร้า (active cart ต่อผู้ใช้)
+type CartRepository interface {
+	// Get คืน cart active ของ user พร้อม items ที่ enrich แล้ว (ชื่อสินค้า/variant/ราคา/รูป/สต็อกปัจจุบัน)
+	// ถ้ายังไม่มี cart ให้คืน &domain.Cart{UserID: userID} (ตะกร้าว่าง) ไม่ใช่ error
+	Get(ctx context.Context, userID uint) (*domain.Cart, error)
+	// UpsertItem บวกจำนวนเข้ารายการเดิม หรือสร้างใหม่ (merge ตาม unique(cart,variant)) — สร้าง cart ให้ถ้ายังไม่มี
+	UpsertItem(ctx context.Context, userID, variantID uint, qty int) error
+	// SetItemQty ตั้งจำนวนของ item — scope ด้วย userID กัน IDOR (แก้ได้เฉพาะ item ในตะกร้าตัวเอง)
+	SetItemQty(ctx context.Context, userID, itemID uint, qty int) error
+	// RemoveItem ลบ item — scope ด้วย userID กัน IDOR
+	RemoveItem(ctx context.Context, userID, itemID uint) error
+	// Clear ลบทุก item ในตะกร้า active ของ user
+	Clear(ctx context.Context, userID uint) error
 }

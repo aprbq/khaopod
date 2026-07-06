@@ -77,3 +77,27 @@ func (r *ProductRepo) FindBySlug(ctx context.Context, slug string) (*domain.Prod
 	p := toProductDomain(row)
 	return &p, nil
 }
+
+func (r *ProductRepo) FindVariantByID(ctx context.Context, id uint) (*domain.ProductVariant, error) {
+	var row variantRow
+	err := dbFromContext(ctx, r.db).
+		Where("id = ? AND is_active = ?", id, true).
+		First(&row).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, domain.ErrNotFound
+	}
+	if err != nil {
+		return nil, err
+	}
+	v := domain.ProductVariant{
+		ID:            row.ID,
+		ProductID:     row.ProductID,
+		SKU:           deref(row.SKU),
+		Name:          row.VariantName,
+		Color:         deref(row.Color),
+		Price:         row.Price,
+		StockQuantity: row.StockQuantity,
+		IsActive:      row.IsActive,
+	}
+	return &v, nil
+}

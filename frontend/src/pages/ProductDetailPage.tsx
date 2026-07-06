@@ -1,10 +1,13 @@
 import { useState } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { Link, useNavigate, useParams } from 'react-router-dom'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { ImageLightbox } from '@/components/ImageLightbox'
 import { Spinner } from '@/components/ui/spinner'
+import { useAuth } from '@/features/auth/AuthContext'
+import { useAddToCart } from '@/features/cart/hooks'
 import { useProduct } from '@/features/products/hooks'
+import { ApiError } from '@/lib/apiClient'
 import { useLang } from '@/i18n/LanguageContext'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import { formatBaht } from '@/lib/format'
@@ -33,6 +36,9 @@ export function ProductDetailPage() {
   const [activeIdx, setActiveIdx] = useState(0)
   const [zoomOpen, setZoomOpen] = useState(false)
   const [notice, setNotice] = useState('')
+  const navigate = useNavigate()
+  const { status } = useAuth()
+  const addToCartMut = useAddToCart()
   useDocumentTitle(data?.name)
 
   if (isLoading) {
@@ -54,8 +60,18 @@ export function ProductDetailPage() {
   }
 
   const addToCart = () => {
-    // ระบบตะกร้าจะต่อกับ backend /cart ในเฟสถัดไป
-    setNotice(t('product.cartComingSoon'))
+    if (status !== 'authenticated') {
+      navigate('/login') // ต้องล็อกอินก่อนถึงจะมีตะกร้า
+      return
+    }
+    if (!selected) return
+    addToCartMut.mutate(
+      { variantId: selected.id, quantity: 1 },
+      {
+        onSuccess: () => setNotice(t('product.added')),
+        onError: (e) => setNotice(e instanceof ApiError ? e.message : t('product.outOfStock')),
+      },
+    )
   }
 
   const images = data.images ?? []
@@ -212,9 +228,10 @@ export function ProductDetailPage() {
           <Button
             className="mt-8 w-full"
             size="lg"
-            disabled={!data.in_stock || !selected || selected.stock_quantity <= 0}
+            disabled={!data.in_stock || !selected || selected.stock_quantity <= 0 || addToCartMut.isPending}
             onClick={addToCart}
           >
+            {addToCartMut.isPending && <Spinner />}
             {!data.in_stock
               ? t('product.outOfStock')
               : !selected
@@ -222,7 +239,12 @@ export function ProductDetailPage() {
                 : t('product.addToCart')}
           </Button>
           {notice && (
-            <p className="mt-3 rounded-md bg-accent/10 px-3 py-2 text-sm text-accent">{notice}</p>
+            <p className="mt-3 flex flex-wrap items-center gap-2 rounded-md bg-accent/10 px-3 py-2 text-sm text-accent">
+              <span>{notice}</span>
+              <Link to="/cart" className="font-semibold underline">
+                {t('product.viewCart')}
+              </Link>
+            </p>
           )}
 
           <div className="mt-8 border-t border-border pt-6">
