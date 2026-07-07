@@ -6,6 +6,8 @@ interface ConfirmDialogProps {
   desc: string
   confirmLabel: string
   cancelLabel: string
+  // สีปุ่มยืนยันตามความหมายของ action — ลบ/ปฏิเสธ = destructive (ค่าเริ่มต้น), อนุมัติ = default
+  confirmVariant?: 'destructive' | 'default'
   onConfirm: () => void
   onCancel: () => void
 }
@@ -18,6 +20,7 @@ export function ConfirmDialog({
   desc,
   confirmLabel,
   cancelLabel,
+  confirmVariant = 'destructive',
   onConfirm,
   onCancel,
 }: ConfirmDialogProps) {
@@ -44,7 +47,7 @@ export function ConfirmDialog({
           <Button variant="outline" onClick={onCancel}>
             {cancelLabel}
           </Button>
-          <Button variant="destructive" onClick={onConfirm}>
+          <Button variant={confirmVariant} onClick={onConfirm}>
             {confirmLabel}
           </Button>
         </div>

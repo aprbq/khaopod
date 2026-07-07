@@ -27,6 +27,16 @@ func mapError(c *gin.Context, err error) {
 		response.Error(c, 409, response.CodeOutOfStock, "สินค้าในสต็อกไม่พอ")
 	case errors.Is(err, domain.ErrInvalidQuantity):
 		response.Error(c, 422, response.CodeValidation, "จำนวนสินค้าไม่ถูกต้อง")
+	case errors.Is(err, domain.ErrCartEmpty):
+		response.Error(c, 409, response.CodeCartEmpty, "ตะกร้าว่าง ไม่มีสินค้าให้สั่งซื้อ")
+	case errors.Is(err, domain.ErrOrderNotCancellable):
+		response.Error(c, 409, response.CodeNotCancellable, "ออเดอร์นี้ยกเลิกไม่ได้แล้ว (เริ่มจัดส่งแล้ว)")
+	case errors.Is(err, domain.ErrPaymentNotAllowed):
+		response.Error(c, 409, response.CodePaymentDenied, "ออเดอร์นี้แจ้งชำระเงินไม่ได้ (จ่ายแล้วหรือรอตรวจสอบอยู่)")
+	case errors.Is(err, domain.ErrAmountMismatch):
+		response.Error(c, 422, response.CodeAmountMismatch, "ยอดโอนไม่ตรงกับยอดที่ต้องชำระ")
+	case errors.Is(err, domain.ErrConflict):
+		response.Error(c, 409, response.CodeConflict, "ข้อมูลซ้ำหรือถูกใช้งานอยู่ (เช่น slug ซ้ำ หรือสินค้าอยู่ในตะกร้าลูกค้า)")
 	case errors.Is(err, domain.ErrInvalidOTP):
 		response.Error(c, 400, response.CodeInvalidOTP, "รหัส OTP ไม่ถูกต้องหรือหมดอายุแล้ว")
 	case errors.Is(err, domain.ErrOTPExpired):

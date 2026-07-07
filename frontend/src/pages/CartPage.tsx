@@ -44,7 +44,6 @@ export function CartPage() {
   const removeItem = useRemoveCartItem()
   const clearCart = useClearCart()
   const [err, setErr] = useState('')
-  const [info, setInfo] = useState('')
   // เป้าหมายที่รอผู้ใช้กดยืนยันก่อนลบ — null = ไม่มี dialog เปิดอยู่
   const [confirm, setConfirm] = useState<
     { kind: 'item'; itemId: number; name: string } | { kind: 'clear' } | null
@@ -103,7 +102,6 @@ export function CartPage() {
       {err && (
         <p className="mt-4 rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">{err}</p>
       )}
-      {info && <p className="mt-4 rounded-md bg-accent/10 px-3 py-2 text-sm text-accent">{info}</p>}
 
       <div className="mt-6 grid gap-8 lg:grid-cols-[1fr_20rem]">
         {/* รายการสินค้า */}
@@ -191,10 +189,11 @@ export function CartPage() {
             <span className="text-sm text-muted-foreground">{t('cart.subtotal')}</span>
             <span className="text-lg font-bold">{formatBaht(cart?.subtotal ?? 0)}</span>
           </div>
-          {/* ระบบชำระเงินยังไม่เปิด — เฟสถัดไป */}
-          <Button className="mt-5 w-full" size="lg" onClick={() => setInfo(t('cart.checkoutSoon'))}>
-            {t('cart.checkout')}
-          </Button>
+          <Link to="/checkout" className="mt-5 block">
+            <Button className="w-full" size="lg">
+              {t('cart.checkout')}
+            </Button>
+          </Link>
         </aside>
       </div>
 

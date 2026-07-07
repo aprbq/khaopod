@@ -7,6 +7,7 @@ import "errors"
 var (
 	ErrNotFound     = errors.New("not found")
 	ErrForbidden    = errors.New("forbidden")
+	ErrConflict     = errors.New("resource in use or duplicated")
 	ErrUnauthorized = errors.New("unauthorized")
 	ErrInactiveUser = errors.New("user is inactive")
 	ErrInvalidInput = errors.New("invalid input")
@@ -14,6 +15,12 @@ var (
 	// Cart / stock
 	ErrOutOfStock      = errors.New("out of stock")
 	ErrInvalidQuantity = errors.New("invalid quantity")
+
+	// Order / payment
+	ErrCartEmpty           = errors.New("cart is empty")
+	ErrOrderNotCancellable = errors.New("order cannot be cancelled")
+	ErrPaymentNotAllowed   = errors.New("payment not allowed for this order")
+	ErrAmountMismatch      = errors.New("payment amount does not match order total")
 
 	// Auth / OTP
 	ErrInvalidOTP      = errors.New("invalid otp")

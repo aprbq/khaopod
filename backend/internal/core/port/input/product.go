@@ -12,6 +12,8 @@ type ProductUseCase interface {
 	List(ctx context.Context, q ProductQuery) ([]domain.Product, int, error)
 	// GetBySlug คืนรายละเอียดสินค้า (พร้อม variants + รูป) — domain.ErrNotFound ถ้าไม่พบ/ไม่ active
 	GetBySlug(ctx context.Context, slug string) (*domain.Product, error)
+	// Categories คืนหมวดหมู่ที่ active ทั้งหมด (§4.1)
+	Categories(ctx context.Context) ([]domain.Category, error)
 }
 
 // ProductQuery = พารามิเตอร์ค้นหา/แบ่งหน้า (ค่าดิบจาก query string)

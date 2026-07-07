@@ -61,6 +61,25 @@ func (r *UserRepo) Create(ctx context.Context, u *domain.User) error {
 	return nil
 }
 
+func (r *UserRepo) ListAll(ctx context.Context, limit, offset int) ([]domain.User, int, error) {
+	db := dbFromContext(ctx, r.db)
+
+	var total int64
+	if err := db.Model(&userRow{}).Count(&total).Error; err != nil {
+		return nil, 0, err
+	}
+
+	var rows []userRow
+	if err := db.Order("created_at DESC, id DESC").Limit(limit).Offset(offset).Find(&rows).Error; err != nil {
+		return nil, 0, err
+	}
+	out := make([]domain.User, 0, len(rows))
+	for _, row := range rows {
+		out = append(out, toUserDomain(row))
+	}
+	return out, int(total), nil
+}
+
 func (r *UserRepo) Update(ctx context.Context, u *domain.User) error {
 	row := toUserRow(u)
 	// อัปเดตเฉพาะฟิลด์ที่แก้ได้ (ไม่แตะ id/public_id/created_at)

@@ -38,6 +38,8 @@ func main() {
 	oauthRepo := postgres.NewOAuthRepo(db)
 	productRepo := postgres.NewProductRepo(db)
 	cartRepo := postgres.NewCartRepo(db)
+	addressRepo := postgres.NewAddressRepo(db)
+	orderRepo := postgres.NewOrderRepo(db)
 	txMgr := postgres.NewTxManager(db)
 	mail := mailer.NewSMTPMailer(cfg.SMTPHost, cfg.SMTPPort, cfg.SMTPUser, cfg.SMTPPass, cfg.MailFrom, cfg.SMTPTimeout)
 	tokenizer := auth.NewJWTTokenizer(cfg.JWTSecret, cfg.AccessTTL)
@@ -61,6 +63,11 @@ func main() {
 	userSvc := service.NewUserService(userRepo, fileStore)
 	productSvc := service.NewProductService(productRepo)
 	cartSvc := service.NewCartService(cartRepo, productRepo)
+	addressSvc := service.NewAddressService(addressRepo, txMgr)
+	orderSvc := service.NewOrderService(orderRepo, cartRepo, productRepo, addressRepo, fileStore, txMgr)
+	adminSvc := service.NewAdminOrderService(orderRepo, productRepo, txMgr)
+	adminCatalogSvc := service.NewAdminCatalogService(productRepo, productRepo, fileStore, txMgr)
+	adminUserSvc := service.NewAdminUserService(userRepo)
 
 	// inbound adapter (driving side)
 	if cfg.IsProduction() {
@@ -72,6 +79,9 @@ func main() {
 		User:        rest.NewUserHandler(userSvc),
 		Product:     rest.NewProductHandler(productSvc),
 		Cart:        rest.NewCartHandler(cartSvc),
+		Address:     rest.NewAddressHandler(addressSvc),
+		Order:       rest.NewOrderHandler(orderSvc),
+		Admin:       rest.NewAdminHandler(adminSvc, adminCatalogSvc, adminUserSvc),
 		Tokens:      tokenizer,
 		ImageDir:    cfg.ImageDir,
 		UploadDir:   cfg.UploadDir,

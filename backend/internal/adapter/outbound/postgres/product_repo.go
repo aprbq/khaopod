@@ -5,6 +5,7 @@ import (
 	"errors"
 
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 
 	"github.com/khaopod/backend/internal/core/domain"
 	"github.com/khaopod/backend/internal/core/port/output"
@@ -100,4 +101,37 @@ func (r *ProductRepo) FindVariantByID(ctx context.Context, id uint) (*domain.Pro
 		IsActive:      row.IsActive,
 	}
 	return &v, nil
+}
+
+// GetVariantForUpdate ล็อกแถวด้วย SELECT ... FOR UPDATE — ต้องเรียกใน WithinTx เท่านั้น
+// (นอก tx การล็อกไม่มีผล เพราะปล่อยทันทีที่ statement จบ)
+func (r *ProductRepo) GetVariantForUpdate(ctx context.Context, id uint) (*domain.ProductVariant, error) {
+	var row variantRow
+	err := dbFromContext(ctx, r.db).
+		Clauses(clause.Locking{Strength: "UPDATE"}).
+		Where("id = ?", id).
+		First(&row).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, domain.ErrNotFound
+	}
+	if err != nil {
+		return nil, err
+	}
+	v := domain.ProductVariant{
+		ID:            row.ID,
+		ProductID:     row.ProductID,
+		SKU:           deref(row.SKU),
+		Name:          row.VariantName,
+		Color:         deref(row.Color),
+		Price:         row.Price,
+		StockQuantity: row.StockQuantity,
+		IsActive:      row.IsActive,
+	}
+	return &v, nil
+}
+
+func (r *ProductRepo) SaveVariantStock(ctx context.Context, v *domain.ProductVariant) error {
+	return dbFromContext(ctx, r.db).Model(&variantRow{}).
+		Where("id = ?", v.ID).
+		Update("stock_quantity", v.StockQuantity).Error
 }
