@@ -1,6 +1,8 @@
 package rest
 
 import (
+	"time"
+
 	"github.com/shopspring/decimal"
 
 	"github.com/khaopod/backend/internal/core/domain"
@@ -42,12 +44,14 @@ func (r updateProfileRequest) toCommand() input.UpdateProfileCommand {
 // ---- Response DTO ----
 
 type userResponse struct {
-	PublicID    string `json:"public_id"`
-	Email       string `json:"email"`
-	DisplayName string `json:"display_name"`
-	AvatarURL   string `json:"avatar_url"`
-	Phone       string `json:"phone,omitempty"`
-	Role        string `json:"role"`
+	PublicID    string    `json:"public_id"`
+	Email       string    `json:"email"`
+	DisplayName string    `json:"display_name"`
+	AvatarURL   string    `json:"avatar_url"`
+	Phone       string    `json:"phone,omitempty"`
+	Role        string    `json:"role"`
+	CreatedAt   time.Time `json:"created_at"`
+	UpdatedAt   time.Time `json:"updated_at"`
 }
 
 func toUserResponse(u *domain.User) userResponse {
@@ -58,6 +62,8 @@ func toUserResponse(u *domain.User) userResponse {
 		AvatarURL:   u.AvatarURL,
 		Phone:       u.Phone,
 		Role:        string(u.Role),
+		CreatedAt:   u.CreatedAt,
+		UpdatedAt:   u.UpdatedAt,
 	}
 }
 

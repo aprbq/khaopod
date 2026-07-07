@@ -40,6 +40,9 @@ func (fakeUserUC) GetProfile(context.Context, uint) (*domain.User, error) { retu
 func (fakeUserUC) UpdateProfile(context.Context, uint, input.UpdateProfileCommand) (*domain.User, error) {
 	return nil, nil
 }
+func (fakeUserUC) UpdateAvatar(context.Context, uint, input.UpdateAvatarCommand) (*domain.User, error) {
+	return nil, nil
+}
 
 func setup(uc input.AuthUseCase) *gin.Engine {
 	gin.SetMode(gin.TestMode)

@@ -51,6 +51,7 @@ type Deps struct {
 	Tokens      output.Tokenizer
 	RateLimit   RateLimitConfig
 	ImageDir    string   // โฟลเดอร์รูปสินค้าที่เสิร์ฟผ่าน /images
+	UploadDir   string   // โฟลเดอร์ไฟล์ที่ผู้ใช้อัปโหลด (รูปโปรไฟล์) เสิร์ฟผ่าน /uploads
 	CORSOrigins []string // origin ของ frontend ที่อนุญาตให้ยิงข้าม origin ได้
 }
 
@@ -74,6 +75,10 @@ func RegisterRoutes(engine *gin.Engine, d Deps) {
 	if d.ImageDir != "" {
 		engine.Static("/images", d.ImageDir)
 	}
+	// เสิร์ฟไฟล์อัปโหลดของผู้ใช้ (🔓) — user.avatar_url ชี้มาที่ /uploads/<path>
+	if d.UploadDir != "" {
+		engine.Static("/uploads", d.UploadDir)
+	}
 
 	v1 := engine.Group("/api/v1")
 
@@ -93,6 +98,7 @@ func RegisterRoutes(engine *gin.Engine, d Deps) {
 	secured.GET("/auth/me", d.Auth.Me)
 	secured.GET("/me", d.User.GetMe)
 	secured.PATCH("/me", d.User.UpdateMe)
+	secured.POST("/me/avatar", d.User.UploadAvatar)
 
 	// ---- Cart (🔒) — ดู docs/rest_api.md §6 ----
 	secured.GET("/cart", d.Cart.Get)

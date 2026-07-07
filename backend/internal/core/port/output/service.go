@@ -44,3 +44,11 @@ type GoogleVerifier interface {
 type TxManager interface {
 	WithinTx(ctx context.Context, fn func(ctx context.Context) error) error
 }
+
+// FileStorage — เก็บไฟล์ที่ผู้ใช้อัปโหลด (adapter storage ไป implement)
+type FileStorage interface {
+	// Save เขียนไฟล์ตาม relative path (เช่น "avatars/x.png") แล้วคืน public URL ที่ใช้เสิร์ฟไฟล์นั้น
+	Save(ctx context.Context, relPath string, content []byte) (url string, err error)
+	// Remove ลบไฟล์จาก public URL ที่ Save เคยคืน — URL ที่ไม่ใช่ของ storage นี้ (เช่นรูปจาก Google) ให้เมินเฉย ๆ
+	Remove(ctx context.Context, url string) error
+}
