@@ -74,6 +74,24 @@ func (r *fakeUserRepo) Update(_ context.Context, u *domain.User) error {
 	return nil
 }
 
+func (r *fakeUserRepo) ListAll(_ context.Context, limit, offset int) ([]domain.User, int, error) {
+	var all []domain.User
+	for id := uint(1); id < r.nextID; id++ {
+		if u, ok := r.byID[id]; ok {
+			all = append(all, *u)
+		}
+	}
+	total := len(all)
+	if offset > total {
+		offset = total
+	}
+	end := offset + limit
+	if end > total {
+		end = total
+	}
+	return all[offset:end], total, nil
+}
+
 // fakeFileStorage เก็บไฟล์ใน memory — จำทั้งที่เซฟและที่สั่งลบ ไว้ตรวจใน assert
 type fakeFileStorage struct {
 	saved   map[string][]byte
@@ -252,11 +270,307 @@ func (r *fakeProductRepo) FindVariantByID(_ context.Context, id uint) (*domain.P
 	return nil, domain.ErrNotFound
 }
 
+// fake ไม่มี lock จริง — พฤติกรรมเทียบเท่า FindVariantByID (เทส service ไม่ทดสอบ concurrency ของ DB)
+func (r *fakeProductRepo) GetVariantForUpdate(_ context.Context, id uint) (*domain.ProductVariant, error) {
+	if v, ok := r.variants[id]; ok {
+		return &v, nil
+	}
+	return nil, domain.ErrNotFound
+}
+
+func (r *fakeProductRepo) SaveVariantStock(_ context.Context, v *domain.ProductVariant) error {
+	r.variants[v.ID] = *v
+	return nil
+}
+
+func (r *fakeProductRepo) ListCategories(context.Context) ([]domain.Category, error) {
+	return nil, nil
+}
+
+// fakeCatalogRepo — แคตตาล็อกใน memory สำหรับเทสหลังบ้าน
+type fakeCatalogRepo struct {
+	byID      map[uint]*domain.Product
+	nextID    uint
+	deleteErr error
+	images    map[uint]*domain.ProductImage
+	nextImgID uint
+}
+
+func newFakeCatalogRepo() *fakeCatalogRepo {
+	return &fakeCatalogRepo{byID: map[uint]*domain.Product{}, nextID: 1, images: map[uint]*domain.ProductImage{}, nextImgID: 1}
+}
+
+func (r *fakeCatalogRepo) ListAllProducts(_ context.Context, _ output.ProductFilter) ([]domain.Product, int, error) {
+	var out []domain.Product
+	for id := uint(1); id < r.nextID; id++ {
+		if p, ok := r.byID[id]; ok {
+			out = append(out, *p)
+		}
+	}
+	return out, len(out), nil
+}
+
+func (r *fakeCatalogRepo) FindProductByID(_ context.Context, id uint) (*domain.Product, error) {
+	if p, ok := r.byID[id]; ok {
+		return p, nil
+	}
+	return nil, domain.ErrNotFound
+}
+
+func (r *fakeCatalogRepo) CreateProduct(_ context.Context, p *domain.Product) error {
+	p.ID = r.nextID
+	r.nextID++
+	r.byID[p.ID] = p
+	return nil
+}
+
+func (r *fakeCatalogRepo) UpdateProduct(_ context.Context, p *domain.Product) error {
+	r.byID[p.ID] = p
+	return nil
+}
+
+func (r *fakeCatalogRepo) DeleteProduct(_ context.Context, id uint) error {
+	if r.deleteErr != nil {
+		return r.deleteErr
+	}
+	delete(r.byID, id)
+	return nil
+}
+
+func (r *fakeCatalogRepo) CreateVariant(_ context.Context, v *domain.ProductVariant) error {
+	p := r.byID[v.ProductID]
+	v.ID = uint(len(p.Variants) + 1)
+	p.Variants = append(p.Variants, *v)
+	return nil
+}
+
+func (r *fakeCatalogRepo) UpdateVariant(_ context.Context, v *domain.ProductVariant) error {
+	for _, p := range r.byID {
+		for i := range p.Variants {
+			if p.Variants[i].ID == v.ID {
+				p.Variants[i] = *v
+			}
+		}
+	}
+	return nil
+}
+
+func (r *fakeCatalogRepo) DeleteVariant(context.Context, uint) error { return nil }
+
+func (r *fakeCatalogRepo) AddImage(_ context.Context, img *domain.ProductImage) error {
+	img.ID = r.nextImgID
+	r.nextImgID++
+	r.images[img.ID] = img
+	if p, ok := r.byID[img.ProductID]; ok {
+		p.Images = append(p.Images, *img)
+	}
+	return nil
+}
+
+func (r *fakeCatalogRepo) DeleteImage(_ context.Context, id uint) (string, error) {
+	img, ok := r.images[id]
+	if !ok {
+		return "", domain.ErrNotFound
+	}
+	delete(r.images, id)
+	return img.URL, nil
+}
+
+func (r *fakeCatalogRepo) SetPrimaryImage(_ context.Context, productID, imageID uint) error {
+	for _, img := range r.images {
+		if img.ProductID == productID {
+			img.IsPrimary = img.ID == imageID
+		}
+	}
+	return nil
+}
+
 // fakeTx เรียก fn ตรง ๆ ไม่มี transaction จริง
 type fakeTx struct{}
 
 func (fakeTx) WithinTx(ctx context.Context, fn func(context.Context) error) error {
 	return fn(ctx)
+}
+
+// fakeAddressRepo — ที่อยู่ใน memory (scope ด้วย userID เหมือน repo จริง)
+type fakeAddressRepo struct {
+	byID   map[uint]*domain.Address
+	nextID uint
+}
+
+func newFakeAddressRepo() *fakeAddressRepo {
+	return &fakeAddressRepo{byID: map[uint]*domain.Address{}, nextID: 1}
+}
+
+func (r *fakeAddressRepo) seed(a *domain.Address) *domain.Address {
+	if a.ID == 0 {
+		a.ID = r.nextID
+		r.nextID++
+	}
+	r.byID[a.ID] = a
+	return a
+}
+
+func (r *fakeAddressRepo) ListByUser(_ context.Context, userID uint) ([]domain.Address, error) {
+	var out []domain.Address
+	for id := uint(1); id < r.nextID; id++ { // วนตาม id ให้ลำดับคงที่
+		if a, ok := r.byID[id]; ok && a.UserID == userID {
+			out = append(out, *a)
+		}
+	}
+	return out, nil
+}
+
+func (r *fakeAddressRepo) FindByID(_ context.Context, userID, id uint) (*domain.Address, error) {
+	if a, ok := r.byID[id]; ok && a.UserID == userID {
+		cp := *a
+		return &cp, nil
+	}
+	return nil, domain.ErrNotFound
+}
+
+func (r *fakeAddressRepo) Create(_ context.Context, a *domain.Address) error {
+	r.seed(a)
+	return nil
+}
+
+func (r *fakeAddressRepo) Update(_ context.Context, a *domain.Address) error {
+	r.byID[a.ID] = a
+	return nil
+}
+
+func (r *fakeAddressRepo) Delete(_ context.Context, userID, id uint) error {
+	if a, ok := r.byID[id]; ok && a.UserID == userID {
+		delete(r.byID, id)
+	}
+	return nil
+}
+
+func (r *fakeAddressRepo) ClearDefault(_ context.Context, userID uint) error {
+	for _, a := range r.byID {
+		if a.UserID == userID {
+			a.IsDefault = false
+		}
+	}
+	return nil
+}
+
+// fakeOrderRepo — คำสั่งซื้อใน memory + จำสิ่งที่ service สั่ง (status/payment) ไว้ตรวจ
+type fakeOrderRepo struct {
+	byNumber       map[string]*domain.Order
+	nextID         uint
+	statusLog      []domain.OrderStatus
+	payments       []*domain.Payment
+	createErr      error
+	paymentErr     error
+	lastChangedBy  uint
+	lastVerifiedBy uint
+}
+
+func newFakeOrderRepo() *fakeOrderRepo {
+	return &fakeOrderRepo{byNumber: map[string]*domain.Order{}, nextID: 1}
+}
+
+func (r *fakeOrderRepo) Create(_ context.Context, o *domain.Order) error {
+	if r.createErr != nil {
+		return r.createErr
+	}
+	o.ID = r.nextID
+	r.nextID++
+	o.OrderNumber = fakeOrderNumber(o.ID)
+	r.byNumber[o.OrderNumber] = o
+	return nil
+}
+
+func fakeOrderNumber(id uint) string { return "ORD-TEST-" + string(rune('0'+id)) }
+
+func (r *fakeOrderRepo) ListByUser(_ context.Context, userID uint, f output.OrderListFilter) ([]domain.Order, int, error) {
+	var out []domain.Order
+	for _, o := range r.byNumber {
+		if o.UserID == userID && (f.Status == "" || o.Status == f.Status) {
+			out = append(out, *o)
+		}
+	}
+	return out, len(out), nil
+}
+
+func (r *fakeOrderRepo) FindByNumber(_ context.Context, userID uint, number string) (*domain.Order, error) {
+	if o, ok := r.byNumber[number]; ok && o.UserID == userID {
+		return o, nil
+	}
+	return nil, domain.ErrNotFound
+}
+
+func (r *fakeOrderRepo) UpdateStatus(_ context.Context, orderID uint, status domain.OrderStatus, ps domain.PaymentStatus, _ string, changedBy uint) error {
+	r.statusLog = append(r.statusLog, status)
+	r.lastChangedBy = changedBy
+	for _, o := range r.byNumber {
+		if o.ID == orderID {
+			o.Status = status
+			o.PaymentStatus = ps
+		}
+	}
+	return nil
+}
+
+func (r *fakeOrderRepo) CreatePayment(_ context.Context, p *domain.Payment) error {
+	if r.paymentErr != nil {
+		return r.paymentErr
+	}
+	p.ID = uint(len(r.payments) + 1)
+	r.payments = append(r.payments, p)
+	return nil
+}
+
+// ---- ฝั่งแอดมิน ----
+
+func (r *fakeOrderRepo) ListAll(_ context.Context, f output.OrderListFilter) ([]domain.Order, int, error) {
+	var out []domain.Order
+	for _, o := range r.byNumber {
+		if f.Status == "" || o.Status == f.Status {
+			out = append(out, *o)
+		}
+	}
+	return out, len(out), nil
+}
+
+func (r *fakeOrderRepo) FindByNumberAny(_ context.Context, number string) (*domain.Order, error) {
+	if o, ok := r.byNumber[number]; ok {
+		return o, nil
+	}
+	return nil, domain.ErrNotFound
+}
+
+func (r *fakeOrderRepo) FindByIDAny(_ context.Context, id uint) (*domain.Order, error) {
+	for _, o := range r.byNumber {
+		if o.ID == id {
+			return o, nil
+		}
+	}
+	return nil, domain.ErrNotFound
+}
+
+func (r *fakeOrderRepo) FindPaymentByID(_ context.Context, id uint) (*domain.Payment, error) {
+	for _, p := range r.payments {
+		if p.ID == id {
+			return p, nil
+		}
+	}
+	return nil, domain.ErrNotFound
+}
+
+func (r *fakeOrderRepo) SavePaymentVerdict(_ context.Context, paymentID uint, status domain.PaymentStatus, verifiedBy uint) error {
+	for _, p := range r.payments {
+		if p.ID == paymentID {
+			p.Status = status
+		}
+	}
+	r.lastVerifiedBy = verifiedBy
+	return nil
+}
+
+func (r *fakeOrderRepo) Summary(_ context.Context) (*domain.AdminSummary, error) {
+	return &domain.AdminSummary{OrdersTotal: len(r.byNumber)}, nil
 }
 
 // harness รวม dependency ทั้งหมดไว้ประกอบ service ในเทส

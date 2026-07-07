@@ -48,6 +48,9 @@ type Deps struct {
 	User        *UserHandler
 	Product     *ProductHandler
 	Cart        *CartHandler
+	Address     *AddressHandler
+	Order       *OrderHandler
+	Admin       *AdminHandler
 	Tokens      output.Tokenizer
 	RateLimit   RateLimitConfig
 	ImageDir    string   // โฟลเดอร์รูปสินค้าที่เสิร์ฟผ่าน /images
@@ -89,6 +92,7 @@ func RegisterRoutes(engine *gin.Engine, d Deps) {
 	v1.POST("/auth/refresh", d.Auth.Refresh)
 
 	// ---- Products (🔓 สาธารณะ) ----
+	v1.GET("/categories", d.Product.Categories)
 	v1.GET("/products", d.Product.List)
 	v1.GET("/products/:slug", d.Product.GetBySlug)
 
@@ -106,4 +110,40 @@ func RegisterRoutes(engine *gin.Engine, d Deps) {
 	secured.PATCH("/cart/items/:itemId", d.Cart.UpdateItem)
 	secured.DELETE("/cart/items/:itemId", d.Cart.RemoveItem)
 	secured.DELETE("/cart", d.Cart.Clear)
+
+	// ---- Addresses (🔒) — §7 ----
+	secured.GET("/addresses", d.Address.List)
+	secured.POST("/addresses", d.Address.Create)
+	secured.GET("/addresses/:id", d.Address.Get)
+	secured.PATCH("/addresses/:id", d.Address.Update)
+	secured.DELETE("/addresses/:id", d.Address.Delete)
+	secured.POST("/addresses/:id/default", d.Address.SetDefault)
+
+	// ---- Orders + Payments (🔒) — §9, §10 ----
+	secured.POST("/orders", d.Order.Place)
+	secured.GET("/orders", d.Order.List)
+	secured.GET("/orders/:orderNumber", d.Order.Get)
+	secured.POST("/orders/:orderNumber/cancel", d.Order.Cancel)
+	secured.POST("/orders/:orderNumber/payment", d.Order.SubmitPayment)
+	secured.GET("/orders/:orderNumber/payment", d.Order.GetPayment)
+
+	// ---- Admin (🛡️) — §11 + จัดการแคตตาล็อก §5.3 ----
+	admin := v1.Group("/admin", RequireAuth(d.Tokens), RequireAdmin())
+	admin.GET("/dashboard/summary", d.Admin.Summary)
+	admin.GET("/orders", d.Admin.ListOrders)
+	admin.GET("/orders/:orderNumber", d.Admin.GetOrder)
+	admin.PATCH("/orders/:orderNumber/status", d.Admin.UpdateStatus)
+	admin.PATCH("/payments/:id/verify", d.Admin.VerifyPayment)
+	admin.GET("/users", d.Admin.ListUsers)
+	admin.GET("/products", d.Admin.ListProducts)
+	admin.POST("/products", d.Admin.CreateProduct)
+	admin.GET("/products/:id", d.Admin.GetProduct)
+	admin.PATCH("/products/:id", d.Admin.UpdateProduct)
+	admin.DELETE("/products/:id", d.Admin.DeleteProduct)
+	admin.POST("/products/:id/variants", d.Admin.CreateVariant)
+	admin.PATCH("/variants/:id", d.Admin.UpdateVariant)
+	admin.DELETE("/variants/:id", d.Admin.DeleteVariant)
+	admin.POST("/products/:id/images", d.Admin.AddProductImage)
+	admin.DELETE("/images/:id", d.Admin.DeleteProductImage)
+	admin.POST("/products/:id/images/:imageId/primary", d.Admin.SetPrimaryImage)
 }

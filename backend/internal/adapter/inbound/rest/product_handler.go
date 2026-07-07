@@ -18,6 +18,20 @@ func NewProductHandler(products input.ProductUseCase) *ProductHandler {
 	return &ProductHandler{products: products}
 }
 
+// GET /categories (🔓) — หมวดหมู่ทั้งหมดที่ active
+func (h *ProductHandler) Categories(c *gin.Context) {
+	items, err := h.products.Categories(c.Request.Context())
+	if err != nil {
+		mapError(c, err)
+		return
+	}
+	out := make([]categoryResponse, 0, len(items))
+	for i := range items {
+		out = append(out, *toCategoryResponse(&items[i]))
+	}
+	response.OK(c, out)
+}
+
 // GET /products (🔓) — filter/search/paginate
 func (h *ProductHandler) List(c *gin.Context) {
 	q := input.ProductQuery{

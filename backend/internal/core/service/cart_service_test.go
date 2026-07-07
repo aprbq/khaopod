@@ -13,10 +13,11 @@ import (
 
 // fakeCartRepo — ตะกร้าใน memory; enrich item จาก variants ที่แชร์กับ fakeProductRepo
 type fakeCartRepo struct {
-	items      map[uint]map[uint]int  // userID -> variantID -> quantity
-	itemIDs    map[uint]map[uint]uint // userID -> variantID -> itemID (stable)
-	variants   map[uint]domain.ProductVariant
-	nextItemID uint
+	items           map[uint]map[uint]int  // userID -> variantID -> quantity
+	itemIDs         map[uint]map[uint]uint // userID -> variantID -> itemID (stable)
+	variants        map[uint]domain.ProductVariant
+	nextItemID      uint
+	convertedCartID uint // จำว่าตะกร้าไหนถูกปิดหลัง checkout
 }
 
 func newFakeCartRepo(variants map[uint]domain.ProductVariant) *fakeCartRepo {
@@ -81,6 +82,11 @@ func (r *fakeCartRepo) RemoveItem(_ context.Context, userID, itemID uint) error 
 func (r *fakeCartRepo) Clear(_ context.Context, userID uint) error {
 	delete(r.items, userID)
 	delete(r.itemIDs, userID)
+	return nil
+}
+
+func (r *fakeCartRepo) MarkConverted(_ context.Context, cartID uint) error {
+	r.convertedCartID = cartID
 	return nil
 }
 

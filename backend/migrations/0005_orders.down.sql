@@ -1,0 +1,10 @@
+DROP TABLE IF EXISTS payments;
+DROP TABLE IF EXISTS order_status_history;
+DROP TABLE IF EXISTS order_items;
+DROP TABLE IF EXISTS orders;
+DROP TABLE IF EXISTS addresses;
+DROP FUNCTION IF EXISTS generate_order_number();
+DROP SEQUENCE IF EXISTS order_number_seq;
+DROP TYPE IF EXISTS payment_method;
+DROP TYPE IF EXISTS payment_status;
+DROP TYPE IF EXISTS order_status;

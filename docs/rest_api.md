@@ -300,6 +300,8 @@ Response `200`:
 
 ### 5.3 จัดการสินค้า / ตัวเลือก / รูป 🛡️
 ```
+GET    /admin/products                    (รวมสินค้าที่ปิดขาย — response เพิ่ม is_active)
+GET    /admin/products/{id}
 POST   /admin/products
 PATCH  /admin/products/{id}
 DELETE /admin/products/{id}
@@ -308,9 +310,19 @@ POST   /admin/products/{id}/variants
 PATCH  /admin/variants/{id}
 DELETE /admin/variants/{id}
 
-POST   /admin/products/{id}/images        (multipart/form-data อัปรูป)
+POST   /admin/products/{id}/images                    (multipart field "image" — JPG/PNG/WebP ≤ 5MB, รูปแรกเป็นรูปปกอัตโนมัติ)
+POST   /admin/products/{id}/images/{imageId}/primary  (ตั้งรูปปก)
 DELETE /admin/images/{id}
 ```
+Request สินค้า:
+```json
+{ "name": "เสื้อยืดข่าวปด", "slug": "khaopod-tee", "description": "...", "base_price": 290.00, "category_id": 1, "is_active": true, "is_featured": false }
+```
+Request ตัวเลือก:
+```json
+{ "variant_name": "ไซซ์ M", "color": "ดำ", "sku": "TS01-M-BK", "price": 299.00, "stock_quantity": 12, "is_active": true }
+```
+> ลบสินค้า/ตัวเลือกเป็นการลบถาวร — ถ้ามีของอยู่ในตะกร้าลูกค้าจะได้ `409 CONFLICT` (ให้ปิดการขายแทน), slug ซ้ำก็ `409`
 
 ---
 
@@ -471,6 +483,8 @@ Request:
 }
 ```
 Backend จะทำใน transaction เดียว: ตรวจสต็อก → ตัดสต็อก → คัดลอกที่อยู่+สินค้าเป็น snapshot → สร้าง order + order_items → เปลี่ยนตะกร้าเป็น `converted`
+> ตอนนี้ค่าส่งคิดเหมาจ่าย 40 บาท/ออเดอร์ และ `coupon_code` ยังไม่รองรับ (ระบบคูปอง §8 เป็นเฟสถัดไป — ส่งมาจะถูกเมิน)
+> `payment_method` รองรับ `promptpay` และ `bank_transfer`
 Response `201`:
 ```json
 {
@@ -533,18 +547,21 @@ amount: 578.20
 transaction_ref: (optional)
 slip: <ไฟล์รูปสลิป>
 ```
-Response `201` → payment สถานะ `pending_review` รอแอดมินตรวจ
+Response `201` → object `order` (มี `payment` สถานะ `pending_review` รอแอดมินตรวจ)
+> `slip` รับ JPG / PNG / WebP ไม่เกิน **5MB** (ตรวจชนิดจากเนื้อไฟล์จริง), `amount` ต้องเท่ากับ `total_amount` เป๊ะ ไม่งั้น `422 AMOUNT_MISMATCH`
+> แจ้งซ้ำระหว่างรอตรวจ/จ่ายแล้ว → `409 PAYMENT_NOT_ALLOWED`
 
 ### 10.2 ดูสถานะการชำระเงินของออเดอร์ 🔒
 ```
 GET /orders/{orderNumber}/payment
 ```
 
-### 10.3 (PromptPay) ขอ QR สำหรับจ่าย 🔒
+### 10.3 (PromptPay) ขอ QR สำหรับจ่าย 🔒 — *ยังไม่เปิดใช้*
 ```
 GET /orders/{orderNumber}/payment/qr
 ```
 Response → payload/รูป QR PromptPay ตามยอด `total_amount`
+> ยังไม่ implement — ตอนนี้ frontend แสดงหมายเลข PromptPay ของร้าน + ยอดที่ต้องโอนแทน
 
 ---
 
@@ -552,8 +569,10 @@ Response → payload/รูป QR PromptPay ตามยอด `total_amount`
 
 ### 11.1 ดูคำสั่งซื้อทั้งหมด
 ```
-GET /admin/orders?status=paid&search=ORD-2026&page=1
+GET /admin/orders?status=paid&page=1&per_page=20
 ```
+Response → list ของ object `order` (เพิ่ม `user_email` ของเจ้าของออเดอร์) + `meta`
+> `search` ยังไม่รองรับ — กรองได้เฉพาะ `status`
 
 ### 11.2 อัปเดตสถานะคำสั่งซื้อ
 ```
@@ -571,8 +590,11 @@ PATCH /admin/payments/{id}/verify
 ```json
 { "status": "paid" }        // หรือ "failed"
 ```
+Response → object `order` ล่าสุดหลังตัดสิน
+> ตัดสินได้เฉพาะ payment ที่สถานะ `pending_review` (ตัดสินซ้ำ → `409 PAYMENT_NOT_ALLOWED`)
+> `paid`: ออเดอร์ `pending` จะขยับเป็น `paid`; `failed`: ลูกค้าแจ้งชำระเงินใหม่ได้
 
-### 11.4 เพิ่มเลขพัสดุ (จัดส่ง)
+### 11.4 เพิ่มเลขพัสดุ (จัดส่ง) — *ยังไม่เปิดใช้*
 ```
 POST /admin/orders/{orderNumber}/shipment
 ```
@@ -581,11 +603,28 @@ POST /admin/orders/{orderNumber}/shipment
 ```
 > เมื่อเพิ่มเลขพัสดุ ระบบเปลี่ยนสถานะออเดอร์เป็น `shipped` ให้อัตโนมัติ
 
-### 11.5 แดชบอร์ดสรุป (ทางเลือก)
+### 11.5 แดชบอร์ดสรุป
 ```
-GET /admin/dashboard/summary?from=2026-07-01&to=2026-07-31
+GET /admin/dashboard/summary
 ```
-คืนยอดขาย, จำนวนออเดอร์แยกตามสถานะ, สินค้าขายดี ฯลฯ
+```json
+{
+  "success": true,
+  "data": {
+    "orders_total": 128,
+    "orders_pending": 5,
+    "payments_pending_review": 3,
+    "revenue_paid": 45120.00
+  }
+}
+```
+> ช่วงวันที่ (`from`/`to`) และสินค้าขายดี — เฟสถัดไป
+
+### 11.6 ดูรายชื่อผู้ใช้
+```
+GET /admin/users?page=1&per_page=20
+```
+Response → list ของผู้ใช้ (`public_id`, `email`, `display_name`, `avatar_url`, `role`, `is_active`, `last_login_at`, `created_at`) + `meta` — เรียงสมัครใหม่สุดก่อน
 
 ---
 
@@ -631,6 +670,7 @@ GET /admin/dashboard/summary?from=2026-07-01&to=2026-07-31
 | Admin | PATCH | /admin/payments/{id}/verify | 🛡️ |
 | Admin | POST | /admin/orders/{orderNumber}/shipment | 🛡️ |
 | Admin | GET | /admin/dashboard/summary | 🛡️ |
+| Admin | GET | /admin/users | 🛡️ |
 
 ---
 

@@ -147,6 +147,7 @@ type productVariantResponse struct {
 	Price         decimal.Decimal `json:"price"`
 	StockQuantity int             `json:"stock_quantity"`
 	SKU           string          `json:"sku,omitempty"`
+	IsActive      bool            `json:"is_active"`
 }
 
 // รายละเอียดสินค้า (§5.2) = ข้อมูลย่อชุดเดียวกับ list + description + variants + รูปทั้งหมด
@@ -181,6 +182,7 @@ func toProductDetailResponse(p *domain.Product) productDetailResponse {
 			Price:         v.Price,
 			StockQuantity: v.StockQuantity,
 			SKU:           v.SKU,
+			IsActive:      v.IsActive,
 		})
 	}
 	return resp
@@ -245,4 +247,285 @@ func toCartResponse(c *domain.Cart) cartResponse {
 		})
 	}
 	return cartResponse{ID: c.ID, Items: items, Subtotal: c.Subtotal(), ItemCount: c.ItemCount()}
+}
+
+// ---- Addresses (§7) ----
+
+type addressRequest struct {
+	RecipientName string `json:"recipient_name" valid:"required"`
+	Phone         string `json:"phone" valid:"required,numeric"`
+	AddressLine   string `json:"address_line" valid:"required"`
+	Subdistrict   string `json:"subdistrict" valid:"required"`
+	District      string `json:"district" valid:"required"`
+	Province      string `json:"province" valid:"required"`
+	PostalCode    string `json:"postal_code" valid:"required,matches(^[0-9]{5}$)"`
+	Note          string `json:"note"`
+	IsDefault     bool   `json:"is_default"`
+}
+
+func (r addressRequest) toCommand() input.AddressCommand {
+	return input.AddressCommand{
+		RecipientName: r.RecipientName,
+		Phone:         r.Phone,
+		AddressLine:   r.AddressLine,
+		Subdistrict:   r.Subdistrict,
+		District:      r.District,
+		Province:      r.Province,
+		PostalCode:    r.PostalCode,
+		Note:          r.Note,
+		IsDefault:     r.IsDefault,
+	}
+}
+
+type addressResponse struct {
+	ID            uint   `json:"id"`
+	RecipientName string `json:"recipient_name"`
+	Phone         string `json:"phone"`
+	AddressLine   string `json:"address_line"`
+	Subdistrict   string `json:"subdistrict"`
+	District      string `json:"district"`
+	Province      string `json:"province"`
+	PostalCode    string `json:"postal_code"`
+	Note          string `json:"note,omitempty"`
+	IsDefault     bool   `json:"is_default"`
+}
+
+func toAddressResponse(a *domain.Address) addressResponse {
+	return addressResponse{
+		ID:            a.ID,
+		RecipientName: a.RecipientName,
+		Phone:         a.Phone,
+		AddressLine:   a.AddressLine,
+		Subdistrict:   a.Subdistrict,
+		District:      a.District,
+		Province:      a.Province,
+		PostalCode:    a.PostalCode,
+		Note:          a.Note,
+		IsDefault:     a.IsDefault,
+	}
+}
+
+// ---- Orders (§9) + Payments (§10) ----
+
+type placeOrderRequest struct {
+	AddressID     uint   `json:"address_id" valid:"required"`
+	PaymentMethod string `json:"payment_method" valid:"required"`
+	CustomerNote  string `json:"customer_note"`
+}
+
+func (r placeOrderRequest) toCommand() input.PlaceOrderCommand {
+	return input.PlaceOrderCommand{
+		AddressID:     r.AddressID,
+		PaymentMethod: domain.PaymentMethod(r.PaymentMethod),
+		CustomerNote:  r.CustomerNote,
+	}
+}
+
+type cancelOrderRequest struct {
+	Reason string `json:"reason"`
+}
+
+type orderItemResponse struct {
+	ProductName string          `json:"product_name"`
+	VariantName string          `json:"variant_name"`
+	UnitPrice   decimal.Decimal `json:"unit_price"`
+	Quantity    int             `json:"quantity"`
+	LineTotal   decimal.Decimal `json:"line_total"`
+}
+
+type shippingAddressResponse struct {
+	Recipient   string `json:"recipient"`
+	Phone       string `json:"phone"`
+	Address     string `json:"address"`
+	Subdistrict string `json:"subdistrict"`
+	District    string `json:"district"`
+	Province    string `json:"province"`
+	PostalCode  string `json:"postal_code"`
+}
+
+type paymentResponse struct {
+	ID             uint            `json:"id"` // แอดมินใช้อ้างตอน PATCH /admin/payments/{id}/verify
+	Method         string          `json:"method"`
+	Amount         decimal.Decimal `json:"amount"`
+	Status         string          `json:"status"`
+	SlipURL        string          `json:"slip_url,omitempty"`
+	TransactionRef string          `json:"transaction_ref,omitempty"`
+	CreatedAt      time.Time       `json:"created_at"`
+}
+
+func toPaymentResponse(p *domain.Payment) *paymentResponse {
+	if p == nil {
+		return nil
+	}
+	return &paymentResponse{
+		ID:             p.ID,
+		Method:         string(p.Method),
+		Amount:         p.Amount,
+		Status:         string(p.Status),
+		SlipURL:        p.SlipURL,
+		TransactionRef: p.TransactionRef,
+		CreatedAt:      p.CreatedAt,
+	}
+}
+
+type orderResponse struct {
+	OrderNumber     string                  `json:"order_number"`
+	Status          string                  `json:"status"`
+	PaymentStatus   string                  `json:"payment_status"`
+	PaymentMethod   string                  `json:"payment_method,omitempty"`
+	Subtotal        decimal.Decimal         `json:"subtotal"`
+	DiscountAmount  decimal.Decimal         `json:"discount_amount"`
+	ShippingFee     decimal.Decimal         `json:"shipping_fee"`
+	TotalAmount     decimal.Decimal         `json:"total_amount"`
+	Items           []orderItemResponse     `json:"items"`
+	ShippingAddress shippingAddressResponse `json:"shipping_address"`
+	CustomerNote    string                  `json:"customer_note,omitempty"`
+	Payment         *paymentResponse        `json:"payment,omitempty"`
+	PlacedAt        time.Time               `json:"placed_at"`
+}
+
+func toOrderResponse(o *domain.Order) orderResponse {
+	items := make([]orderItemResponse, 0, len(o.Items))
+	for _, it := range o.Items {
+		items = append(items, orderItemResponse{
+			ProductName: it.ProductName,
+			VariantName: it.VariantName,
+			UnitPrice:   it.UnitPrice,
+			Quantity:    it.Quantity,
+			LineTotal:   it.LineTotal,
+		})
+	}
+	return orderResponse{
+		OrderNumber:    o.OrderNumber,
+		Status:         string(o.Status),
+		PaymentStatus:  string(o.PaymentStatus),
+		PaymentMethod:  string(o.PaymentMethod),
+		Subtotal:       o.Subtotal,
+		DiscountAmount: o.DiscountAmount,
+		ShippingFee:    o.ShippingFee,
+		TotalAmount:    o.TotalAmount,
+		Items:          items,
+		ShippingAddress: shippingAddressResponse{
+			Recipient:   o.Shipping.Recipient,
+			Phone:       o.Shipping.Phone,
+			Address:     o.Shipping.Address,
+			Subdistrict: o.Shipping.Subdistrict,
+			District:    o.Shipping.District,
+			Province:    o.Shipping.Province,
+			PostalCode:  o.Shipping.PostalCode,
+		},
+		CustomerNote: o.CustomerNote,
+		Payment:      toPaymentResponse(o.Payment),
+		PlacedAt:     o.PlacedAt,
+	}
+}
+
+// ---- Admin (§11) ----
+
+type adminSummaryResponse struct {
+	OrdersTotal           int             `json:"orders_total"`
+	OrdersPending         int             `json:"orders_pending"`
+	PaymentsPendingReview int             `json:"payments_pending_review"`
+	RevenuePaid           decimal.Decimal `json:"revenue_paid"`
+}
+
+// adminOrderResponse = orderResponse + ข้อมูลเจ้าของออเดอร์ (โชว์เฉพาะหลังบ้าน)
+type adminOrderResponse struct {
+	orderResponse
+	UserEmail string `json:"user_email"`
+}
+
+func toAdminOrderResponse(o *domain.Order) adminOrderResponse {
+	return adminOrderResponse{orderResponse: toOrderResponse(o), UserEmail: o.UserEmail}
+}
+
+type updateOrderStatusRequest struct {
+	Status string `json:"status" valid:"required"`
+	Note   string `json:"note"`
+}
+
+type verifyPaymentRequest struct {
+	Status string `json:"status" valid:"required"` // "paid" | "failed"
+}
+
+// ---- Admin: catalog (§5.3) ----
+
+type productRequest struct {
+	Name        string          `json:"name" valid:"required"`
+	Slug        string          `json:"slug" valid:"required"`
+	Description string          `json:"description"`
+	BasePrice   decimal.Decimal `json:"base_price"`
+	CategoryID  *uint           `json:"category_id"`
+	IsActive    bool            `json:"is_active"`
+	IsFeatured  bool            `json:"is_featured"`
+}
+
+func (r productRequest) toCommand() input.ProductCommand {
+	return input.ProductCommand{
+		Name:        r.Name,
+		Slug:        r.Slug,
+		Description: r.Description,
+		BasePrice:   r.BasePrice,
+		CategoryID:  r.CategoryID,
+		IsActive:    r.IsActive,
+		IsFeatured:  r.IsFeatured,
+	}
+}
+
+type variantRequest struct {
+	VariantName string          `json:"variant_name" valid:"required"`
+	Color       string          `json:"color"`
+	SKU         string          `json:"sku"`
+	Price       decimal.Decimal `json:"price"`
+	Stock       int             `json:"stock_quantity"`
+	IsActive    bool            `json:"is_active"`
+}
+
+func (r variantRequest) toCommand() input.VariantCommand {
+	return input.VariantCommand{
+		Name:     r.VariantName,
+		Color:    r.Color,
+		SKU:      r.SKU,
+		Price:    r.Price,
+		Stock:    r.Stock,
+		IsActive: r.IsActive,
+	}
+}
+
+// adminProductResponse = รายละเอียดสินค้า + สถานะที่หน้าร้านไม่โชว์ (is_active)
+type adminProductResponse struct {
+	productDetailResponse
+	IsActive bool `json:"is_active"`
+}
+
+func toAdminProductResponse(p *domain.Product) adminProductResponse {
+	return adminProductResponse{productDetailResponse: toProductDetailResponse(p), IsActive: p.IsActive}
+}
+
+// ---- Admin: users ----
+
+type adminUserResponse struct {
+	PublicID    string     `json:"public_id"`
+	Email       string     `json:"email"`
+	DisplayName string     `json:"display_name"`
+	AvatarURL   string     `json:"avatar_url"`
+	Phone       string     `json:"phone,omitempty"`
+	Role        string     `json:"role"`
+	IsActive    bool       `json:"is_active"`
+	LastLoginAt *time.Time `json:"last_login_at"`
+	CreatedAt   time.Time  `json:"created_at"`
+}
+
+func toAdminUserResponse(u *domain.User) adminUserResponse {
+	return adminUserResponse{
+		PublicID:    u.PublicID,
+		Email:       u.Email,
+		DisplayName: u.DisplayName,
+		AvatarURL:   u.AvatarURL,
+		Phone:       u.Phone,
+		Role:        string(u.Role),
+		IsActive:    u.IsActive,
+		LastLoginAt: u.LastLoginAt,
+		CreatedAt:   u.CreatedAt,
+	}
 }

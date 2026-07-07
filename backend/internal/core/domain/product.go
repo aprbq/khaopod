@@ -39,6 +39,25 @@ type ProductVariant struct {
 	IsActive      bool
 }
 
+// Reserve ตัดสต็อกตามจำนวนที่สั่ง — เรียกได้เฉพาะใน tx ที่ล็อกแถว variant แล้ว (กัน oversell)
+func (v *ProductVariant) Reserve(qty int) error {
+	if qty <= 0 {
+		return ErrInvalidQuantity
+	}
+	if v.StockQuantity < qty {
+		return ErrOutOfStock
+	}
+	v.StockQuantity -= qty
+	return nil
+}
+
+// Restock คืนสต็อกตอนยกเลิกออเดอร์ — เรียกใน tx ที่ล็อกแถวแล้วเช่นกัน
+func (v *ProductVariant) Restock(qty int) {
+	if qty > 0 {
+		v.StockQuantity += qty
+	}
+}
+
 // Product = สินค้าหลัก — ราคา/สต็อกที่ขายจริงอยู่ที่ Variants
 type Product struct {
 	ID          uint

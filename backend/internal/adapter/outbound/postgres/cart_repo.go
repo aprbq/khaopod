@@ -110,6 +110,12 @@ func (r *CartRepo) Clear(ctx context.Context, userID uint) error {
 		userID).Error
 }
 
+func (r *CartRepo) MarkConverted(ctx context.Context, cartID uint) error {
+	return dbFromContext(ctx, r.db).Model(&cartRow{}).
+		Where("id = ?", cartID).
+		Update("status", "converted").Error
+}
+
 // ensureActiveCart คืน id ของตะกร้า active — สร้างใหม่ถ้ายังไม่มี
 func (r *CartRepo) ensureActiveCart(db *gorm.DB, userID uint) (uint, error) {
 	var cart cartRow

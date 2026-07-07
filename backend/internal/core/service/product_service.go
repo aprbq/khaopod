@@ -50,6 +50,10 @@ func (s *ProductService) GetBySlug(ctx context.Context, slug string) (*domain.Pr
 	return s.products.FindBySlug(ctx, slug)
 }
 
+func (s *ProductService) Categories(ctx context.Context) ([]domain.Category, error) {
+	return s.products.ListCategories(ctx)
+}
+
 // parseSort แปลงค่า sort ("-created_at") เป็นคอลัมน์ + ทิศทาง
 // prefix "-" = จากมากไปน้อย; ค่าที่ไม่อยู่ใน whitelist → default (created_at desc, ใหม่สุดก่อน)
 func parseSort(sort string) (column string, desc bool) {
