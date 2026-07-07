@@ -15,3 +15,7 @@ export function useVerifyOtp() {
 export function useUpdateProfile() {
   return useMutation({ mutationFn: (input: UpdateProfileInput) => authApi.updateProfile(input) })
 }
+
+export function useUploadAvatar() {
+  return useMutation({ mutationFn: (file: File) => authApi.uploadAvatar(file) })
+}

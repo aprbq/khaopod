@@ -9,6 +9,8 @@ export interface User {
   avatar_url: string
   phone?: string
   role: Role
+  created_at: string
+  updated_at: string
 }
 
 // ผลหลังขอ OTP (ยังไม่ล็อกอิน)
