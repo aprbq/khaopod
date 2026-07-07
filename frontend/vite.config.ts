@@ -19,6 +19,7 @@ export default defineConfig({
     proxy: {
       '/v1': 'http://127.0.0.1:8080',
       '/images': 'http://127.0.0.1:8080', // รูปสินค้า static จาก backend
+      '/uploads': 'http://127.0.0.1:8080', // ไฟล์ที่ผู้ใช้อัปโหลด (รูปโปรไฟล์)
     },
   },
 })

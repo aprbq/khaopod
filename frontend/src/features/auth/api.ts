@@ -21,4 +21,10 @@ export const authApi = {
 
   updateProfile: (input: UpdateProfileInput) =>
     apiFetch<User>('/me', { method: 'PATCH', body: JSON.stringify(input) }),
+
+  uploadAvatar: (file: File) => {
+    const form = new FormData()
+    form.append('avatar', file)
+    return apiFetch<User>('/me/avatar', { method: 'POST', body: form })
+  },
 }

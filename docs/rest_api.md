@@ -148,7 +148,9 @@ Response `200`:
       "email": "somchai@gmail.com",
       "display_name": "สมชาย ใจดี",
       "avatar_url": "https://...",
-      "role": "customer"
+      "role": "customer",
+      "created_at": "2026-07-01T10:00:00Z",
+      "updated_at": "2026-07-06T09:30:00Z"
     }
   }
 }
@@ -192,6 +194,16 @@ PATCH /me
 ```json
 { "display_name": "สมชาย", "phone": "0812345678" }
 ```
+
+### 3.3 อัปโหลดรูปโปรไฟล์ 🔒
+```
+POST /me/avatar
+```
+ส่งแบบ `multipart/form-data` ฟิลด์ `avatar` — รับเฉพาะ JPG / PNG / WebP ขนาดไม่เกิน **2MB**
+(ตรวจชนิดจากเนื้อไฟล์จริง ไม่ใช่นามสกุล)
+
+Response `200` → object `user` โดย `avatar_url` ชี้ไปไฟล์ใหม่ที่เสิร์ฟผ่าน static route `/uploads/...`
+Error `422` — `code: VALIDATION_ERROR` เมื่อชนิด/ขนาดไฟล์ไม่ผ่าน
 
 ---
 
@@ -589,6 +601,7 @@ GET /admin/dashboard/summary?from=2026-07-01&to=2026-07-31
 | Auth | GET | /auth/me | 🔒 |
 | Profile | GET | /me | 🔒 |
 | Profile | PATCH | /me | 🔒 |
+| Profile | POST | /me/avatar | 🔒 |
 | Category | GET | /categories | 🔓 |
 | Category | POST/PATCH/DELETE | /admin/categories | 🛡️ |
 | Product | GET | /products | 🔓 |

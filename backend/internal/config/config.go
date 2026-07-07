@@ -19,6 +19,9 @@ type Config struct {
 	// ImageDir = โฟลเดอร์รูปสินค้าที่เสิร์ฟผ่าน static route /images
 	ImageDir string
 
+	// UploadDir = โฟลเดอร์เก็บไฟล์ที่ผู้ใช้อัปโหลด (รูปโปรไฟล์) เสิร์ฟผ่าน static route /uploads
+	UploadDir string
+
 	// CORSAllowedOrigins = รายชื่อ origin ของ frontend ที่อนุญาตให้ยิงตรงมา backend
 	// (browser บังคับ CORS; ยิงตรงข้าม origin ต้องอยู่ใน allowlist นี้) — ห้ามใช้ "*" คู่กับ credentials
 	CORSAllowedOrigins []string
@@ -60,6 +63,7 @@ func Load() (*Config, error) {
 		Port:        getenv("PORT", "8080"),
 		DatabaseURL: os.Getenv("DATABASE_URL"),
 		ImageDir:    getenv("IMAGE_DIR", "./migrations/image"),
+		UploadDir:   getenv("UPLOAD_DIR", "./uploads"),
 		// dev: frontend รันที่ Vite (5173); prod ตั้ง CORS_ALLOWED_ORIGINS เป็นโดเมนจริง (คั่นด้วย comma)
 		CORSAllowedOrigins: getcsv("CORS_ALLOWED_ORIGINS", "http://localhost:5173,http://127.0.0.1:5173"),
 		JWTSecret:          os.Getenv("JWT_SECRET"),

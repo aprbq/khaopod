@@ -14,6 +14,7 @@ type fakeUserRepo struct {
 	byEmail   map[string]*domain.User
 	nextID    uint
 	createErr error
+	updateErr error
 }
 
 func newFakeUserRepo() *fakeUserRepo {
@@ -65,8 +66,36 @@ func (r *fakeUserRepo) Create(_ context.Context, u *domain.User) error {
 }
 
 func (r *fakeUserRepo) Update(_ context.Context, u *domain.User) error {
+	if r.updateErr != nil {
+		return r.updateErr
+	}
 	r.byID[u.ID] = u
 	r.byEmail[domain.NormalizeEmail(u.Email)] = u
+	return nil
+}
+
+// fakeFileStorage เก็บไฟล์ใน memory — จำทั้งที่เซฟและที่สั่งลบ ไว้ตรวจใน assert
+type fakeFileStorage struct {
+	saved   map[string][]byte
+	removed []string
+	saveErr error
+}
+
+func (f *fakeFileStorage) Save(_ context.Context, relPath string, content []byte) (string, error) {
+	if f.saveErr != nil {
+		return "", f.saveErr
+	}
+	if f.saved == nil {
+		f.saved = map[string][]byte{}
+	}
+	url := "/uploads/" + relPath
+	f.saved[url] = content
+	return url, nil
+}
+
+func (f *fakeFileStorage) Remove(_ context.Context, url string) error {
+	f.removed = append(f.removed, url)
+	delete(f.saved, url)
 	return nil
 }
 

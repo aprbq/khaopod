@@ -11,6 +11,7 @@ import (
 	"github.com/khaopod/backend/internal/adapter/outbound/google"
 	"github.com/khaopod/backend/internal/adapter/outbound/mailer"
 	"github.com/khaopod/backend/internal/adapter/outbound/postgres"
+	"github.com/khaopod/backend/internal/adapter/outbound/storage"
 	"github.com/khaopod/backend/internal/config"
 	"github.com/khaopod/backend/internal/core/service"
 )
@@ -41,6 +42,10 @@ func main() {
 	mail := mailer.NewSMTPMailer(cfg.SMTPHost, cfg.SMTPPort, cfg.SMTPUser, cfg.SMTPPass, cfg.MailFrom, cfg.SMTPTimeout)
 	tokenizer := auth.NewJWTTokenizer(cfg.JWTSecret, cfg.AccessTTL)
 	googleVerifier := google.NewVerifier(cfg.GoogleClientID)
+	fileStore, err := storage.NewLocal(cfg.UploadDir, "/uploads")
+	if err != nil {
+		log.Fatalf("storage: %v", err)
+	}
 
 	// core services (use cases) — inject output ports
 	authSvc := service.NewAuthService(
@@ -53,7 +58,7 @@ func main() {
 			RefreshTTL:     cfg.RefreshTTL,
 		},
 	)
-	userSvc := service.NewUserService(userRepo)
+	userSvc := service.NewUserService(userRepo, fileStore)
 	productSvc := service.NewProductService(productRepo)
 	cartSvc := service.NewCartService(cartRepo, productRepo)
 
@@ -69,6 +74,7 @@ func main() {
 		Cart:        rest.NewCartHandler(cartSvc),
 		Tokens:      tokenizer,
 		ImageDir:    cfg.ImageDir,
+		UploadDir:   cfg.UploadDir,
 		CORSOrigins: cfg.CORSAllowedOrigins,
 		RateLimit: rest.RateLimitConfig{
 			OTPRequestPerIP:          cfg.OTPReqPerIP,

@@ -40,7 +40,8 @@ interface Envelope<T> {
 
 function buildRequest(path: string, opts?: RequestInit): Request {
   const headers = new Headers(opts?.headers)
-  if (opts?.body && !headers.has('Content-Type')) {
+  // FormData ห้ามตั้ง Content-Type เอง — browser ต้องเป็นคนใส่ boundary ของ multipart
+  if (opts?.body && !(opts.body instanceof FormData) && !headers.has('Content-Type')) {
     headers.set('Content-Type', 'application/json')
   }
   if (accessToken) {
