@@ -1,7 +1,7 @@
 import * as React from 'react'
 import { cn } from '@/lib/utils'
 
-type Variant = 'default' | 'outline' | 'ghost' | 'accent'
+type Variant = 'default' | 'outline' | 'ghost' | 'accent' | 'destructive'
 type Size = 'default' | 'sm' | 'lg'
 
 const variants: Record<Variant, string> = {
@@ -9,6 +9,7 @@ const variants: Record<Variant, string> = {
   accent: 'bg-accent text-accent-foreground hover:bg-accent/90',
   outline: 'border border-input bg-background hover:bg-muted',
   ghost: 'hover:bg-muted',
+  destructive: 'bg-destructive text-destructive-foreground hover:bg-destructive/90',
 }
 
 const sizes: Record<Size, string> = {

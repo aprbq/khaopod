@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { Spinner } from '@/components/ui/spinner'
+import { ConfirmDialog } from '@/components/ConfirmDialog'
 import { IconBag } from '@/components/icons'
 import { useAuth } from '@/features/auth/AuthContext'
 import { useCart, useClearCart, useRemoveCartItem, useUpdateCartItem } from '@/features/cart/hooks'
@@ -44,6 +45,18 @@ export function CartPage() {
   const clearCart = useClearCart()
   const [err, setErr] = useState('')
   const [info, setInfo] = useState('')
+  // เป้าหมายที่รอผู้ใช้กดยืนยันก่อนลบ — null = ไม่มี dialog เปิดอยู่
+  const [confirm, setConfirm] = useState<
+    { kind: 'item'; itemId: number; name: string } | { kind: 'clear' } | null
+  >(null)
+
+  const handleConfirm = () => {
+    if (!confirm) return
+    setErr('')
+    if (confirm.kind === 'item') removeItem.mutate({ itemId: confirm.itemId })
+    else clearCart.mutate()
+    setConfirm(null)
+  }
 
   const setQty = (itemId: number, quantity: number) => {
     setErr('')
@@ -150,10 +163,9 @@ export function CartPage() {
                       type="button"
                       className="text-sm text-muted-foreground underline hover:text-destructive disabled:opacity-40"
                       disabled={busy}
-                      onClick={() => {
-                        setErr('')
-                        removeItem.mutate({ itemId: it.id })
-                      }}
+                      onClick={() =>
+                        setConfirm({ kind: 'item', itemId: it.id, name: it.product_name })
+                      }
                     >
                       {t('cart.remove')}
                     </button>
@@ -167,10 +179,7 @@ export function CartPage() {
             type="button"
             className="mt-4 text-sm text-muted-foreground underline hover:text-foreground disabled:opacity-40"
             disabled={clearCart.isPending}
-            onClick={() => {
-              setErr('')
-              clearCart.mutate()
-            }}
+            onClick={() => setConfirm({ kind: 'clear' })}
           >
             {t('cart.clear')}
           </button>
@@ -188,6 +197,21 @@ export function CartPage() {
           </Button>
         </aside>
       </div>
+
+      {confirm && (
+        <ConfirmDialog
+          title={confirm.kind === 'item' ? t('cart.removeConfirmTitle') : t('cart.clearConfirmTitle')}
+          desc={
+            confirm.kind === 'item'
+              ? t('cart.removeConfirmDesc', { name: confirm.name })
+              : t('cart.clearConfirmDesc')
+          }
+          confirmLabel={confirm.kind === 'item' ? t('cart.remove') : t('cart.clear')}
+          cancelLabel={t('common.cancel')}
+          onConfirm={handleConfirm}
+          onCancel={() => setConfirm(null)}
+        />
+      )}
     </div>
   )
 }
