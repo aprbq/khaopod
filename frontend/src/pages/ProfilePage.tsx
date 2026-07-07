@@ -2,6 +2,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { useRef, useState } from 'react'
 import type { ChangeEvent } from 'react'
 import { useForm } from 'react-hook-form'
+import { Link } from 'react-router-dom'
 import { z } from 'zod'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -9,7 +10,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Spinner } from '@/components/ui/spinner'
+import { IconCamera } from '@/components/icons'
 import { useAuth } from '@/features/auth/AuthContext'
+import { AvatarCropDialog } from '@/features/auth/AvatarCropDialog'
 import { useUpdateProfile, useUploadAvatar } from '@/features/auth/hooks'
 import { useLang } from '@/i18n/LanguageContext'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
@@ -30,6 +33,8 @@ export function ProfilePage() {
   const uploadAvatar = useUploadAvatar()
   const fileRef = useRef<HTMLInputElement>(null)
   const [avatarErr, setAvatarErr] = useState('')
+  // object URL ของรูปที่เพิ่งเลือก — มีค่า = dialog ครอบรูปเปิดอยู่
+  const [cropSrc, setCropSrc] = useState<string | null>(null)
   const [saved, setSaved] = useState(false)
 
   const schema = z.object({
@@ -61,17 +66,33 @@ export function ProfilePage() {
 
   const apiMessage = updateProfile.error instanceof ApiError ? updateProfile.error.message : null
 
+  // เลือกไฟล์แล้วยังไม่อัปโหลด — เปิด dialog ให้ครอบรูปก่อน ผู้ใช้กดยืนยันค่อยเรียก API
   const onPickAvatar = (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     e.target.value = '' // เคลียร์ค่าให้เลือกไฟล์เดิมซ้ำแล้ว change ยิงอีกครั้งได้
     if (!file) return
+    setAvatarErr('')
+    setCropSrc(URL.createObjectURL(file))
+  }
+
+  const closeCrop = () => {
+    if (cropSrc) URL.revokeObjectURL(cropSrc)
+    setCropSrc(null)
+    setAvatarErr('')
+  }
+
+  const onCropConfirm = (file: File) => {
     if (file.size > MAX_AVATAR_BYTES) {
       setAvatarErr(t('profile.avatarTooBig'))
       return
     }
     setAvatarErr('')
     uploadAvatar.mutate(file, {
-      onSuccess: (updated) => setUser(updated),
+      onSuccess: (updated) => {
+        setUser(updated)
+        closeCrop()
+      },
+      // อัปโหลดพัง → คง dialog ไว้พร้อมข้อความ error ไม่ทิ้งงานครอบรูปของผู้ใช้
       onError: (err) => setAvatarErr(err instanceof ApiError ? err.message : t('common.error')),
     })
   }
@@ -82,22 +103,37 @@ export function ProfilePage() {
   return (
     <div className="mx-auto max-w-2xl px-4 py-12">
       <div className="mb-8 flex flex-wrap items-center gap-4 border-b border-border pb-6">
-        {user.avatar_url ? (
-          // no-referrer: รูปจาก googleusercontent จะ 403 ถ้าแนบ referrer ข้ามโดเมน
-          <img
-            src={user.avatar_url}
-            alt=""
-            referrerPolicy="no-referrer"
-            className="size-16 shrink-0 rounded-full object-cover"
-          />
-        ) : (
-          <div
+        {/* กดที่รูปเพื่อเลือกรูปใหม่ — เข้าหน้าครอบรูปก่อน แล้วค่อยอัปโหลด */}
+        <button
+          type="button"
+          aria-label={t('profile.changeAvatar')}
+          disabled={uploadAvatar.isPending}
+          onClick={() => fileRef.current?.click()}
+          className="relative shrink-0 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:opacity-60"
+        >
+          {user.avatar_url ? (
+            // no-referrer: รูปจาก googleusercontent จะ 403 ถ้าแนบ referrer ข้ามโดเมน
+            <img
+              src={user.avatar_url}
+              alt=""
+              referrerPolicy="no-referrer"
+              className="size-16 rounded-full object-cover"
+            />
+          ) : (
+            <span
+              aria-hidden
+              className="grid size-16 place-items-center rounded-full bg-primary font-display text-2xl uppercase text-primary-foreground"
+            >
+              {displayName.charAt(0)}
+            </span>
+          )}
+          <span
             aria-hidden
-            className="grid size-16 shrink-0 place-items-center rounded-full bg-primary font-display text-2xl uppercase text-primary-foreground"
+            className="absolute -bottom-0.5 -right-0.5 grid size-6 place-items-center rounded-full border-2 border-background bg-primary text-primary-foreground"
           >
-            {displayName.charAt(0)}
-          </div>
-        )}
+            <IconCamera className="size-3.5" />
+          </span>
+        </button>
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
             <h1 className="truncate font-display text-2xl uppercase md:text-3xl">{displayName}</h1>
@@ -106,8 +142,6 @@ export function ProfilePage() {
           <p className="mt-1 truncate text-sm text-muted-foreground">{user.email}</p>
           <p className="mt-1 text-xs text-muted-foreground">
             {t('profile.joined', { date: formatDate(user.created_at, lang) })}
-            {' · '}
-            {t('profile.lastUpdated', { date: formatDate(user.updated_at, lang) })}
           </p>
           <input
             ref={fileRef}
@@ -116,16 +150,6 @@ export function ProfilePage() {
             className="hidden"
             onChange={onPickAvatar}
           />
-          <button
-            type="button"
-            className="mt-2 inline-flex items-center gap-1.5 text-sm underline hover:text-accent disabled:opacity-40"
-            disabled={uploadAvatar.isPending}
-            onClick={() => fileRef.current?.click()}
-          >
-            {uploadAvatar.isPending && <Spinner className="size-3" />}
-            {t('profile.changeAvatar')}
-          </button>
-          {avatarErr && <p className="mt-1 text-xs text-destructive">{avatarErr}</p>}
         </div>
         <Button variant="outline" size="sm" onClick={() => void signOut()}>
           {t('profile.logout')}
@@ -133,6 +157,24 @@ export function ProfilePage() {
       </div>
 
       <div className="flex flex-col gap-6">
+        {/* ทางลัดไปหน้าคำสั่งซื้อ / หลังบ้าน (เฉพาะแอดมิน) */}
+        <Link
+          to="/orders"
+          className="flex items-center justify-between border border-border px-4 py-3 text-sm font-medium transition-colors hover:bg-muted"
+        >
+          {t('orders.title')}
+          <span aria-hidden>→</span>
+        </Link>
+        {user.role === 'admin' && (
+          <Link
+            to="/admin"
+            className="flex items-center justify-between border border-border px-4 py-3 text-sm font-medium transition-colors hover:bg-muted"
+          >
+            {t('profile.adminPanel')}
+            <span aria-hidden>→</span>
+          </Link>
+        )}
+
         <Card>
           <CardHeader>
             <CardTitle className="text-lg">{t('profile.editProfile')}</CardTitle>
@@ -185,6 +227,18 @@ export function ProfilePage() {
           </CardContent>
         </Card>
       </div>
+
+      {cropSrc && (
+        <AvatarCropDialog
+          src={cropSrc}
+          busy={uploadAvatar.isPending}
+          error={avatarErr}
+          onConfirm={onCropConfirm}
+          onCancel={() => {
+            if (!uploadAvatar.isPending) closeCrop()
+          }}
+        />
+      )}
     </div>
   )
 }

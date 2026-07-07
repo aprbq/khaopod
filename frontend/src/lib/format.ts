@@ -15,3 +15,14 @@ export function formatDate(iso: string, lang: 'th' | 'en' = 'th'): string {
     year: 'numeric',
   }).format(new Date(iso))
 }
+
+// วันที่ + เวลา (ใช้ในหลังบ้าน เช่น login ล่าสุด)
+export function formatDateTime(iso: string, lang: 'th' | 'en' = 'th'): string {
+  return new Intl.DateTimeFormat(lang === 'th' ? 'th-TH' : 'en-GB', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(new Date(iso))
+}

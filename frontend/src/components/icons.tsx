@@ -44,6 +44,15 @@ export function IconUser({ className }: IconProps) {
   )
 }
 
+export function IconCamera({ className }: IconProps) {
+  return (
+    <svg {...base} className={className} width="24" height="24" aria-hidden="true">
+      <path d="M4 8h3l1.5-2h7L17 8h3v11H4V8Z" />
+      <circle cx="12" cy="13" r="3.2" />
+    </svg>
+  )
+}
+
 export function IconArrowRight({ className }: IconProps) {
   return (
     <svg {...base} className={className} width="24" height="24" aria-hidden="true">

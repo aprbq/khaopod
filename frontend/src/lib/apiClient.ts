@@ -50,9 +50,21 @@ function buildRequest(path: string, opts?: RequestInit): Request {
   return new Request(`${BASE_URL}${path}`, { ...opts, headers, credentials: 'include' })
 }
 
+// refresh ต้องเป็น single-flight: backend rotate token ทุกครั้ง ถ้ายิงพร้อมกันหลายสาย
+// (StrictMode boot ซ้ำตอน dev, หลาย query เจอ 401 พร้อมกัน) สายที่ถือ token เก่าจะโดนปฏิเสธ
+// แล้วผู้ใช้ถูกเด้งออกจากระบบทั้งที่ session ยังดี — ให้ทุกสายแชร์คำขอเดียวกันแทน
+let refreshInFlight: Promise<boolean> | null = null
+
 // ขอ access token ใหม่จาก refresh cookie (httpOnly) — คืน true ถ้าสำเร็จ
+export function tryRefresh(): Promise<boolean> {
+  refreshInFlight ??= doRefresh().finally(() => {
+    refreshInFlight = null
+  })
+  return refreshInFlight
+}
+
 // ไม่ throw แม้ backend ล่ม (หน้าร้าน public ต้องเปิดได้แม้ไม่มี backend)
-export async function tryRefresh(): Promise<boolean> {
+async function doRefresh(): Promise<boolean> {
   try {
     const res = await fetch(`${BASE_URL}/auth/refresh`, { method: 'POST', credentials: 'include' })
     if (!res.ok) return false

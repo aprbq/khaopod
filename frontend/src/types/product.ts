@@ -18,6 +18,7 @@ export interface ProductVariant {
   price: number
   stock_quantity: number
   sku?: string
+  is_active: boolean
 }
 
 export interface ProductImage {
